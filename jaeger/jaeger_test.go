@@ -78,7 +78,7 @@ func TestGetTraces(t *testing.T) {
 		_, span := tracer.Start(t.Context(), "test.segment")
 		time.Sleep(time.Second * 3)
 		span.End()
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 6)
 	}
 
 	traces, err := j.GetTraces(t.Context())

@@ -30,7 +30,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
 
   test:
-    name: Run tests
+    name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,7 +49,7 @@ jobs:
           --junitfile report.xml
           --packages="./..."
           --format testname
-          --rerun-fails
+          --rerun-fails=3
           --
           -coverpkg=./...
           -coverprofile=coverage.out
@@ -74,7 +74,7 @@ jobs:
 
   tag:
     if: ${{ github.event_name != 'pull_request'  }}
-    name: Increment tag
+    name: Increment Tag
     needs:
       - lint
       - test
