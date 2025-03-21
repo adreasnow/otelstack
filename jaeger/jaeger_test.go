@@ -21,9 +21,13 @@ import (
 func TestJaegerStart(t *testing.T) {
 	t.Parallel()
 	j := Jaeger{}
-	err, shutdownFunc := j.Start(t.Context())
+	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 
 	endpoint := fmt.Sprintf("http://localhost:%d", j.Ports[16686].Int())
 	t.Logf("using endpoint: %s", endpoint)
@@ -35,9 +39,13 @@ func TestJaegerStart(t *testing.T) {
 
 func TestGetTraces(t *testing.T) {
 	j := Jaeger{}
-	err, shutdownFunc := j.Start(t.Context())
+	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 
 	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", j.Ports[4317].Int()))
@@ -58,7 +66,11 @@ func TestGetTraces(t *testing.T) {
 			),
 		)
 
-		t.Cleanup(func() { exporter.Shutdown(context.Background()) })
+		t.Cleanup(func() {
+			if err := exporter.Shutdown(context.Background()); err != nil {
+				// do nothing
+			}
+		})
 	}
 
 	{ // send trace

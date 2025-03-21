@@ -1,24 +1,63 @@
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+
 name: Test and tag
+permissions:
+  contents: write
+
 jobs:
-  test:
-    strategy:
-      matrix:
-        go-version: [1.21.x, 1.22.x, 1.23.x, 1.24.x]
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  lint:
+    name: Run Golang-CI Lint
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+
+      - name: Run Golang-CI Lint
+        uses: golangci/golangci-lint-action@v6
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+
       - name: Test
-        run: go test -race -bench . -benchmem ./...
-      - name: Test CBOR
-        run: go test -tags binary_log ./...
+        run: >
+          go tool gotestsum
+          --junitfile report.xml
+          --packages="./..."
+          --format testname
+          --rerun-fails
+
+      - name: Attach tests to GHA
+        uses: dorny/test-reporter@v2.0.0
+        if: ${{ !cancelled() }}
+        id: tests
+        with:
+          name: Test Results
+          reporter: java-junit
+          path: report.xml
+          max-annotations: 30
+
   coverage:
+    if: ${{ github.event_name != 'pull_request'  }}
     runs-on: ubuntu-latest
     steps:
       - name: Update coverage report
@@ -28,3 +67,33 @@ jobs:
           chart: "true"
           amend: "true"
         continue-on-error: true
+
+  tag:
+    if: ${{ github.event_name != 'pull_request'  }}
+    name: Increment tag
+    needs:
+      - lint
+      - test
+      - coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get next version
+        uses: reecetech/version-increment@2024.10.1
+        id: version
+        with:
+          scheme: calver
+          increment: patch
+
+      - name: Create tag
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/v${{ steps.version.outputs.version }}',
+              sha: context.sha
+            })

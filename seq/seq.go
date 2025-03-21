@@ -3,7 +3,6 @@ package seq
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,31 +37,31 @@ func (s *Seq) GetEvents(ctx context.Context) (events seqEvents, err error) {
 
 	resp, err := http.Get(endpoint)
 	if err != nil {
-		err = errors.Join(fmt.Errorf("must be able to get events from seq"), err)
+		err = fmt.Errorf("must be able to get events from seq: %v", err)
 		return
 	}
 
 	if resp.StatusCode != 200 {
-		err = errors.Join(fmt.Errorf("must be a 200 response"), err)
+		err = fmt.Errorf("must be a 200 response: %v", err)
 		return
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		err = errors.Join(fmt.Errorf("must be able to get set body from seq response"), err)
+		err = fmt.Errorf("must be able to get set body from seq response: %v", err)
 		return
 	}
 
 	err = json.Unmarshal(body, &events)
 	if err != nil {
-		err = errors.Join(fmt.Errorf("must be able unmarshal events"), err)
+		err = fmt.Errorf("must be able unmarshal events: %v", err)
 		return
 	}
 
 	return
 }
 
-func (s *Seq) Start(ctx context.Context) (error, func(context.Context) error) {
+func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	var err error
 
@@ -71,14 +70,13 @@ func (s *Seq) Start(ctx context.Context) (error, func(context.Context) error) {
 	if s.Network == nil {
 		s.Network, err = network.New(ctx)
 		if err != nil {
-			return errors.Join(fmt.Errorf("could not create network"), err), emptyFunc
+			return emptyFunc, fmt.Errorf("could not create network: %v", err)
 		}
-		defer s.Network.Remove(ctx)
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "docker-hub.artifactory.xero-support.com/datalust/seq:2024.3",
+			Image:        "datalust/seq:2024.3",
 			ExposedPorts: []string{"80/tcp", "5341/tcp"},
 			Networks:     []string{s.Network.Name},
 			WaitingFor:   wait.ForLog("Seq listening on"),
@@ -87,23 +85,23 @@ func (s *Seq) Start(ctx context.Context) (error, func(context.Context) error) {
 		Started: true,
 	})
 	if err != nil {
-		return errors.Join(fmt.Errorf("seq could not start"), err), emptyFunc
+		return emptyFunc, fmt.Errorf("seq could not start: %v", err)
 	}
 
 	s.Name, err = container.Name(ctx)
 	if err != nil {
-		return errors.Join(fmt.Errorf("could not get container name"), err), emptyFunc
+		return emptyFunc, fmt.Errorf("could not get container name: %v", err)
 	}
 	s.Name = s.Name[1:]
 
 	for _, portNum := range []int{80, 5341} {
 		s.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return errors.Join(fmt.Errorf("the port %d could not be retrieved", portNum), err), emptyFunc
+			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
 		}
 	}
 
-	return nil, func(ctx context.Context) error {
+	return func(ctx context.Context) error {
 		return container.Terminate(ctx, testcontainers.StopTimeout(time.Second*30))
-	}
+	}, nil
 }

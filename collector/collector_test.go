@@ -23,10 +23,13 @@ func TestGenerateConfig(t *testing.T) {
 func TestCollectorStart(t *testing.T) {
 	t.Parallel()
 	c := Collector{}
-	err, shutdownFunc := c.Start(t.Context(), "999", "888")
+	shutdownFunc, err := c.Start(t.Context(), "999", "888")
 	require.NoError(t, err, "collector must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
-
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 	endpoint := fmt.Sprintf("http://localhost:%d/health/status", c.Ports[13133].Int())
 
 	resp, err := http.Get(endpoint)

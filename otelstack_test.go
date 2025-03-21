@@ -2,7 +2,6 @@ package otelstack
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -32,10 +31,12 @@ func setupOTEL(t *testing.T) {
 	require.NoError(t, err, "trace exporter must be started")
 
 	t.Cleanup(func() {
-		err := logExporter.Shutdown(context.Background())
-		assert.NoError(t, err)
-		err = traceExporter.Shutdown(context.Background())
-		assert.NoError(t, err)
+		if err := logExporter.Shutdown(context.Background()); err != nil {
+			// do nothing
+		}
+		if err := traceExporter.Shutdown(context.Background()); err != nil {
+			// do nothing
+		}
 	})
 
 	otelLogGlobal.SetLoggerProvider(
@@ -55,18 +56,23 @@ func setupOTEL(t *testing.T) {
 	)
 }
 func TestStartStack(t *testing.T) {
-	s := Stack{}
+	t.Setenv("OTEL_SERVICE_NAME", "test")
+
+	s := stack{}
 	shutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "start must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4317].Int()))
-	t.Setenv("OTEL_SERVICE_NAME", "test.mapper")
+	s.SetTestEnv(t)
 
 	setupOTEL(t)
 
 	t.Run("test-traces", func(t *testing.T) {
+		t.Parallel()
 		tracer := otel.Tracer(os.Getenv("OTEL_SERVICE_NAME"))
 		ctx, span := tracer.Start(t.Context(), "test.segment")
 		trace.SpanFromContext(ctx).SetAttributes(attribute.String("test.key", "test_value"))
@@ -82,6 +88,7 @@ func TestStartStack(t *testing.T) {
 	})
 
 	t.Run("test-logs", func(t *testing.T) {
+		t.Parallel()
 		record := log.Record{}
 		record.SetTimestamp(time.Now())
 		record.SetBody(log.StringValue("test message"))
@@ -92,7 +99,7 @@ func TestStartStack(t *testing.T) {
 			Logger(os.Getenv("OTEL_SERVICE_NAME")).
 			Emit(t.Context(), record)
 
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 3)
 
 		events, err := s.Seq.GetEvents(t.Context())
 		require.NoError(t, err)

@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Lint",
+    "command": "go tool golangci-lint run"
+  },
+  {
+    "label": "Run Tests",
+    "command": "go tool gotestsum --format testname --packages=\"./...\" -- -count 1 -v"
+  },
+  {
+    "label": "Generate Coverage",
+    "command": "go tool gotestsum --format testname --packages=\"./...\" -- -count=1 -coverpkg=./... -coverprofile=coverage.out && go tool cover -func=coverage.out && rm -rf coverage.out"
+  }
+]

@@ -14,9 +14,13 @@ import (
 func TestSeqStart(t *testing.T) {
 	t.Parallel()
 	s := Seq{}
-	err, shutdownFunc := s.Start(t.Context())
+	shutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "seq must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 
 	endpoint := fmt.Sprintf("http://localhost:%d", s.Ports[80].Int())
 
@@ -28,9 +32,13 @@ func TestSeqStart(t *testing.T) {
 func TestGetEvents(t *testing.T) {
 	t.Parallel()
 	s := Seq{}
-	err, shutdownFunc := s.Start(t.Context())
+	shutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "seq must be able to start")
-	t.Cleanup(func() { shutdownFunc(t.Context()) })
+	t.Cleanup(func() {
+		if err := shutdownFunc(t.Context()); err != nil {
+			// do nothing
+		}
+	})
 
 	event := fmt.Appendf([]byte{}, `{
     "Events": [
@@ -59,5 +67,4 @@ func TestGetEvents(t *testing.T) {
 	require.Len(t, events, 1)
 	require.Len(t, events[0].MessageTemplateTokens, 1)
 	assert.Equal(t, "Test Message", events[0].MessageTemplateTokens[0].Text)
-
 }
