@@ -78,7 +78,6 @@ jobs:
     needs:
       - lint
       - test
-      - coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
