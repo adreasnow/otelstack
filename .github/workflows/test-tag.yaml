@@ -50,6 +50,9 @@ jobs:
           --packages="./..."
           --format testname
           --rerun-fails
+          --
+          -coverpkg=./...
+          -coverprofile=coverage.out
 
       - name: Attach tests to GHA
         uses: dorny/test-reporter@v2.0.0
@@ -61,18 +64,13 @@ jobs:
           path: report.xml
           max-annotations: 30
 
-  coverage:
-    name: Generate code coverage
-    if: ${{ github.event_name != 'pull_request'  }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Update coverage report
         uses: ncruces/go-coverage-report@main
         with:
+          coverage-file: coverage.out
           report: "true"
           chart: "true"
           amend: "true"
-        continue-on-error: true
 
   tag:
     if: ${{ github.event_name != 'pull_request'  }}
