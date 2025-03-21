@@ -1,0 +1,30 @@
+on: [push, pull_request]
+name: Test and tag
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.21.x, 1.22.x, 1.23.x, 1.24.x]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Test
+        run: go test -race -bench . -benchmem ./...
+      - name: Test CBOR
+        run: go test -tags binary_log ./...
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@main
+        with:
+          report: "true"
+          chart: "true"
+          amend: "true"
+        continue-on-error: true
