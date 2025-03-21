@@ -57,6 +57,7 @@ jobs:
           max-annotations: 30
 
   coverage:
+    name: Generate code coverage
     if: ${{ github.event_name != 'pull_request'  }}
     runs-on: ubuntu-latest
     steps:
