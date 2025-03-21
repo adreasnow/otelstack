@@ -85,8 +85,9 @@ jobs:
         uses: reecetech/version-increment@2024.10.1
         id: version
         with:
-          scheme: calver
+          scheme: semver
           increment: patch
+          tag_prefix: v
 
       - name: Create tag
         uses: actions/github-script@v5
@@ -95,6 +96,6 @@ jobs:
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'refs/tags/v${{ steps.version.outputs.version }}',
+              ref: 'refs/tags/${{ steps.version.outputs.v-version }}',
               sha: context.sha
             })
