@@ -76,7 +76,7 @@ func TestExampleSetupStack(t *testing.T) {
 
 // Containers can also be started independently if needed, though they won't
 // have OTEL ingestion
-// A if a tescontainer network isn't provded in the struct, one will be created
+// A if a tescontainer network isn't provided in the struct, one will be created
 func TestExampleSetupContainers(t *testing.T) {
 	t.Run("test setup seq", func(t *testing.T) {
 		t.Parallel()
@@ -127,6 +127,6 @@ func TestExampleSetupContainers(t *testing.T) {
 			}
 		})
 
-		t.Logf("Colelctor gRPC endpoint: http://localhost:%d", collector.Ports[4317].Int())
+		t.Logf("Collector gRPC endpoint: http://localhost:%d", collector.Ports[4317].Int())
 	})
 }
