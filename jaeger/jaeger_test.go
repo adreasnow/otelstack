@@ -17,7 +17,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-var serviceName = "test.service"
+var serviceName = "test service"
 
 func TestJaegerStart(t *testing.T) {
 	t.Parallel()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/docker/go-connections/nat"
@@ -32,7 +33,7 @@ type jaegerTraces struct {
 }
 
 func (j *Jaeger) GetTraces(ctx context.Context, maxTraces int, service string) (traces jaegerTraces, err error) {
-	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), service, maxTraces)
+	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), maxTraces)
 
 	resp, err := http.Get(endpoint)
 	if err != nil {
