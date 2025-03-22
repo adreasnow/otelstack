@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -18,6 +17,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+var serviceName = "test.service"
+
 func TestJaegerStart(t *testing.T) {
 	t.Parallel()
 	j := Jaeger{}
@@ -25,7 +26,7 @@ func TestJaegerStart(t *testing.T) {
 	require.NoError(t, err, "jaeger must be able to start")
 	t.Cleanup(func() {
 		if err := shutdownFunc(t.Context()); err != nil {
-			// do nothing
+			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})
 
@@ -43,45 +44,43 @@ func TestGetTraces(t *testing.T) {
 	require.NoError(t, err, "jaeger must be able to start")
 	t.Cleanup(func() {
 		if err := shutdownFunc(t.Context()); err != nil {
-			// do nothing
+			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", j.Ports[4317].Int()))
-	t.Setenv("OTEL_SERVICE_NAME", "test.mapper")
 
 	{ // set up otel tracer
 		exporter, err := otlptracegrpc.New(t.Context())
 		require.NoError(t, err, "must be able to set up exporter")
 
-		resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", os.Getenv("OTEL_SERVICE_NAME"))))
+		resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 		require.NoError(t, err, "must be able to set up resources")
 
 		otel.SetTracerProvider(
 			sdktrace.NewTracerProvider(
 				sdktrace.WithSampler(sdktrace.AlwaysSample()),
-				sdktrace.WithBatcher(exporter),
+				sdktrace.WithSyncer(exporter),
 				sdktrace.WithResource(resources),
 			),
 		)
 
 		t.Cleanup(func() {
 			if err := exporter.Shutdown(context.Background()); err != nil {
-				// do nothing
+				t.Logf("error shutting down exporter: %v", err)
 			}
 		})
 	}
 
 	{ // send trace
-		tracer := otel.Tracer(os.Getenv("OTEL_SERVICE_NAME"))
+		tracer := otel.Tracer(serviceName)
 		_, span := tracer.Start(t.Context(), "test.segment")
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 1)
 		span.End()
-		time.Sleep(time.Second * 6)
+		time.Sleep(time.Second * 2)
 	}
 
-	traces, err := j.GetTraces(t.Context())
+	traces, err := j.GetTraces(t.Context(), 5, serviceName)
 	require.NoError(t, err, "must be able to get traces")
 	require.Len(t, traces.Data, 1)
 	require.Len(t, traces.Data[0].Spans, 1)
