@@ -134,7 +134,7 @@ func TestStartStack(t *testing.T) {
 				span.End()
 			}
 
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 500)
 
 			t.Run("test traces", func(t *testing.T) {
 				traces, err := s.Jaeger.GetTraces(t.Context(), 5, serviceName)

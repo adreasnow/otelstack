@@ -59,7 +59,7 @@ func TestExampleSetupStack(t *testing.T) {
 			Logger(serviceName).
 			Emit(t.Context(), record)
 		span.End()
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 500)
 	}
 
 	// Get traces from Jaeger
