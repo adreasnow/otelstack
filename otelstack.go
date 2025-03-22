@@ -28,9 +28,16 @@ func New() *stack {
 	return s
 }
 
-func (s *stack) SetTestEnv(t *testing.T) {
-	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4317].Int()))
+func (s *stack) SetTestEnvGRPC(t *testing.T) {
+	endpoint := fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4317].Int())
+	t.Logf(" setting endpoint to %s", endpoint)
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
+}
+
+func (s *stack) SetTestEnvHTTP(t *testing.T) {
+	endpoint := fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4318].Int())
+	t.Logf(" setting endpoint to %s", endpoint)
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 }
 
 func (s *stack) Start(ctx context.Context) (func(context.Context) error, error) {

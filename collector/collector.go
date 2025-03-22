@@ -37,7 +37,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "otel/opentelemetry-collector:0.117.0",
-			ExposedPorts: []string{"4317/tcp", "13133/tcp"},
+			ExposedPorts: []string{"4317/tcp", "4318/tcp", "13133/tcp"},
 			Networks:     []string{c.Network.Name},
 			WaitingFor:   wait.ForLog("Everything is ready. Begin running and processing data"),
 			Files: []testcontainers.ContainerFile{{
@@ -58,7 +58,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 	}
 	c.Name = c.Name[1:]
 
-	for _, portNum := range []int{4317, 13133} {
+	for _, portNum := range []int{4317, 4318, 13133} {
 		c.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
 			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
@@ -77,6 +77,8 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:

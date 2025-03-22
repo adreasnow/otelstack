@@ -32,8 +32,8 @@ type seqEvents []struct {
 	ID string `json:"Id"`
 }
 
-func (s *Seq) GetEvents(ctx context.Context) (events seqEvents, err error) {
-	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=5", s.Ports[80].Int())
+func (s *Seq) GetEvents(ctx context.Context, maxEvents int) (events seqEvents, err error) {
+	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), maxEvents)
 
 	resp, err := http.Get(endpoint)
 	if err != nil {

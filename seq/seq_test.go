@@ -18,7 +18,7 @@ func TestSeqStart(t *testing.T) {
 	require.NoError(t, err, "seq must be able to start")
 	t.Cleanup(func() {
 		if err := shutdownFunc(t.Context()); err != nil {
-			// do nothing
+			t.Logf("error shutting down seq: %v", err)
 		}
 	})
 
@@ -36,7 +36,7 @@ func TestGetEvents(t *testing.T) {
 	require.NoError(t, err, "seq must be able to start")
 	t.Cleanup(func() {
 		if err := shutdownFunc(t.Context()); err != nil {
-			// do nothing
+			t.Logf("error shutting down seq: %v", err)
 		}
 	})
 
@@ -62,7 +62,7 @@ func TestGetEvents(t *testing.T) {
 	require.NoError(t, err, "must be able to send request to seq")
 	require.Equal(t, 201, resp.StatusCode, "request must be created")
 
-	events, err := s.GetEvents(t.Context())
+	events, err := s.GetEvents(t.Context(), 5)
 	require.NoError(t, err, "must be able to get events")
 	require.Len(t, events, 1)
 	require.Len(t, events[0].MessageTemplateTokens, 1)
