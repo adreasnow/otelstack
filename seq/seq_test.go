@@ -62,6 +62,8 @@ func TestGetEvents(t *testing.T) {
 	require.NoError(t, err, "must be able to send request to seq")
 	require.Equal(t, 201, resp.StatusCode, "request must be created")
 
+	time.Sleep(time.Second * 4)
+
 	events, err := s.GetEvents(t.Context(), 5)
 	require.NoError(t, err, "must be able to get events")
 	require.Len(t, events, 1)

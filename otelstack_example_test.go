@@ -59,8 +59,9 @@ func TestExampleSetupStack(t *testing.T) {
 			Logger(serviceName).
 			Emit(t.Context(), record)
 		span.End()
-		time.Sleep(time.Second * 2)
 	}
+
+	time.Sleep(time.Second * 4)
 
 	// Get traces from Jaeger
 	traces, err := stack.Jaeger.GetTraces(t.Context(), 5, serviceName)
