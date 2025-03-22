@@ -1,4 +1,4 @@
-# OTEL Tescontainer stack for go
+# OTEL TestContainer stack for go
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/adreasnow/otelstack) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/adreasnow/otelstack/main/LICENSE) [![Build Status](https://github.com/adreasnow/otelstack/actions/workflows/test-tag.yaml/badge.svg?branch=main)](https://github.com/adreasnow/otelstack/actions/workflows/test-tag.yaml) [![Go Coverage](https://github.com/adreasnow/otelstack/wiki/coverage.svg)](https://raw.githack.com/wiki/adreasnow/otelstack/coverage.html)
 

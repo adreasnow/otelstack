@@ -72,6 +72,24 @@ jobs:
           chart: "true"
           amend: "true"
 
+  megalinter:
+    name: Run megalinter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: MegaLinter
+        id: ml
+        uses: oxsecurity/megalinter/flavors/documentation@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_COMMENT_REPORTER: true
+          # ENABLE_LINTERS: ACTION_ACTIONLINT,REPOSITORY_GITLEAKS,BASH_SHELLCHECK
+          REPOSITORY_GITLEAKS_PR_COMMITS_SCAN: true
+          VALIDATE_ALL_CODEBASE: true
   tag:
     if: ${{ github.event_name != 'pull_request'  }}
     name: Increment Tag
