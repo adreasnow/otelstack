@@ -43,6 +43,5 @@ t.Logf("Jaeger ui: http://localhost:%d", stack.Seq.Ports[16686].Int())
 
 ## TODO
 
-- [ ] Add http endpoint to collector
 - [ ] Add metrics to stack (prometheus, but maybe grafana?)
 - [ ] Increase test coverage
