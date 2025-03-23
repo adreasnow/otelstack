@@ -44,7 +44,7 @@ func TestExampleSetupStack(t *testing.T) {
 	// Continue to initialise your own otel setup here
 	shutdown := setupOTELgRPC(t)
 
-	// As a backup in case sometihng happens before shutdown is manually called
+	// As a backup in case something happens before shutdown is manually called
 	t.Cleanup(func() {
 		// t.Context() will be closed before this is called, so be sure to use a new context
 		if err := shutdown(context.Background()); err != nil {
