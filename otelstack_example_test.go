@@ -64,12 +64,12 @@ func TestExampleSetupStack(t *testing.T) {
 	time.Sleep(time.Second * 4)
 
 	// Get traces from Jaeger
-	traces, err := stack.Jaeger.GetTraces(t.Context(), 5, serviceName)
+	traces, err := stack.Jaeger.GetTraces(5, serviceName)
 	require.NoError(t, err, "must be able to get traces")
 	assert.Equal(t, "test-segment", traces.Data[0].Spans[0].OperationName)
 
 	// Get log events from Seq
-	events, err := stack.Seq.GetEvents(t.Context(), 5)
+	events, err := stack.Seq.GetEvents(5)
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 

@@ -64,7 +64,7 @@ func TestGetEvents(t *testing.T) {
 
 	time.Sleep(time.Second * 4)
 
-	events, err := s.GetEvents(t.Context(), 5)
+	events, err := s.GetEvents(5)
 	require.NoError(t, err, "must be able to get events")
 	require.Len(t, events, 1)
 	require.Len(t, events[0].MessageTemplateTokens, 1)

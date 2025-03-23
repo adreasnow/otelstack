@@ -16,15 +16,16 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Jaeger hold the testcontainer, ports and network used by Jaeger. If instansiating yourself,
-// be sure to popule Jaeger.Network, otherwise a new network will be generated.
+// Jaeger hold the testcontainer, ports and network used by Jaeger. If instantiating yourself,
+// be sure to populate Jaeger.Network, otherwise a new network will be generated.
 type Jaeger struct {
 	Ports   map[int]nat.Port
 	Network *testcontainers.DockerNetwork
 	Name    string
 }
 
-type jaegerTraces struct {
+// JaegerTraces holds the retured traces from Jaeger.
+type JaegerTraces struct {
 	Data []struct {
 		TraceID string `json:"traceID"`
 		Spans   []struct {
@@ -36,7 +37,7 @@ type jaegerTraces struct {
 }
 
 // GetTraces takes in a service names and returns the last n traces corresponding to that service.
-func (j *Jaeger) GetTraces(ctx context.Context, maxTraces int, service string) (traces jaegerTraces, err error) {
+func (j *Jaeger) GetTraces(maxTraces int, service string) (traces JaegerTraces, err error) {
 	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), maxTraces)
 
 	resp, err := http.Get(endpoint)

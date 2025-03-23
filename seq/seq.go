@@ -1,4 +1,4 @@
-// Package sew holds the resources needed to start a Seq testcontainer.
+// Package seq holds the resources needed to start a Seq testcontainer.
 package seq
 
 import (
@@ -15,15 +15,16 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Seq hold the testcontainer, ports and network used by Seq. If instansiating yourself,
-// be sure to popule Seq.Network, otherwise a new network will be generated.
+// Seq hold the testcontainer, ports and network used by Seq. If instantiating yourself,
+// be sure to populate Seq.Network, otherwise a new network will be generated.
 type Seq struct {
 	Ports   map[int]nat.Port
 	Network *testcontainers.DockerNetwork
 	Name    string
 }
 
-type seqEvents []struct {
+// SeqEvents holds the returned logging events from Seq.
+type SeqEvents []struct {
 	Timestamp             time.Time `json:"Timestamp"`
 	MessageTemplateTokens []struct {
 		Text string `json:"Text"`
@@ -35,8 +36,8 @@ type seqEvents []struct {
 	ID string `json:"Id"`
 }
 
-// GetEvents takes returns the last n logging events that were recieved by Seq.
-func (s *Seq) GetEvents(ctx context.Context, maxEvents int) (events seqEvents, err error) {
+// GetEvents takes returns the last n logging events that were received by Seq.
+func (s *Seq) GetEvents(maxEvents int) (events SeqEvents, err error) {
 	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), maxEvents)
 
 	resp, err := http.Get(endpoint)

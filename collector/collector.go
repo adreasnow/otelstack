@@ -14,7 +14,7 @@ import (
 )
 
 // Collector hold the testcontainer, ports and network used by the OTEL collector.
-// If instansiating yourself, be sure to popule Collector.Network, otherwise a new network will be generated.
+// If instantiating yourself, be sure to populate Collector.Network, otherwise a new network will be generated.
 type Collector struct {
 	Ports   map[int]nat.Port
 	config  string

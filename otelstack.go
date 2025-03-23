@@ -1,4 +1,4 @@
-// Package otelstack provides a full OTEL collector and reciever clients
+// Package otelstack provides a full OTEL collector and receiver clients
 // conveniently contained within testcontainers. It removes the hassle
 // of managing inter-container communication, has built in querying
 // for validating your tests, and uses lightweight services (seq and Jaeger) to keep
@@ -51,7 +51,7 @@ func (s *Stack) SetTestEnvHTTP(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 }
 
-// Start creates a tescotainer network and starts up all the child containers.
+// Start creates a testcotainer network and starts up all the child containers.
 func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	network, err := network.New(ctx)
