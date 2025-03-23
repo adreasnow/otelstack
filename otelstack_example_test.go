@@ -61,7 +61,8 @@ func TestExampleSetupStack(t *testing.T) {
 		span.End()
 	}
 
-	time.Sleep(time.Second * 5)
+	// Allow everything to propagate
+	time.Sleep(time.Second * 7)
 
 	// Get traces from Jaeger
 	traces, err := stack.Jaeger.GetTraces(5, serviceName)

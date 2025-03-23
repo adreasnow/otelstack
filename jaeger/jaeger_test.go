@@ -79,7 +79,7 @@ func TestGetTraces(t *testing.T) {
 		span.End()
 	}
 
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 7)
 
 	traces, err := j.GetTraces(5, serviceName)
 	require.NoError(t, err, "must be able to get traces")
