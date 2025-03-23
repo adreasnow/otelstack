@@ -43,7 +43,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 			Image:        "otel/opentelemetry-collector:0.117.0",
 			ExposedPorts: []string{"4317/tcp", "4318/tcp", "13133/tcp"},
 			Networks:     []string{c.Network.Name},
-			WaitingFor:   wait.ForLog("Everything is ready. Begin running and processing data"),
+			WaitingFor:   wait.ForListeningPort("13133/tcp"),
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/otelcol/config.yaml",
 				Reader:            strings.NewReader(c.config),

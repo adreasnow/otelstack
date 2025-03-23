@@ -102,7 +102,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 			Image:        "jaegertracing/all-in-one:1.65.0",
 			ExposedPorts: []string{"16686/tcp", "14268/tcp", "6831/tcp", "4317/tcp"},
 			Networks:     []string{j.Network.Name},
-			WaitingFor:   wait.ForLog(`"msg":"Health Check state change","status":"ready"`),
+			WaitingFor:   wait.ForListeningPort("16686/tcp"),
 		},
 		Started: true,
 	})
