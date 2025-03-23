@@ -44,7 +44,7 @@ func TestExampleSetupStack(t *testing.T) {
 	// Continue to initialise your own otel setup here
 	shutdown := setupOTELgRPC(t)
 
-	// As a backup in case somehting happens before shutdown is manually called
+	// As a backup in case sometihng happens before shutdown is manually called
 	t.Cleanup(func() {
 		// t.Context() will be closed before this is called, so be sure to use a new context
 		if err := shutdown(context.Background()); err != nil {
@@ -76,20 +76,14 @@ func TestExampleSetupStack(t *testing.T) {
 
 	// Get traces from Jaeger (this can take a while to propagate from
 	// span --> collector --> jaeger, so we'll keep trying for a while)
-	var traces jaeger.Traces
-	for range 10 {
-		traces, err = stack.Jaeger.GetTraces(5, serviceName)
-		require.NoError(t, err, "must be able to get traces")
-		if len(traces.Data) > 0 {
-			break
-		}
-		time.Sleep(time.Second * 2)
-	}
+	traces, err := stack.Jaeger.GetTraces(1, 10, serviceName)
 	require.NoError(t, err, "must be able to get traces")
-	assert.Equal(t, "test-segment", traces.Data[0].Spans[0].OperationName)
+
+	require.NoError(t, err, "must be able to get traces")
+	assert.Equal(t, "test-segment", traces[0].Spans[0].OperationName)
 
 	// Get log events from Seq
-	events, err := stack.Seq.GetEvents(5)
+	events, err := stack.Seq.GetEvents(1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 

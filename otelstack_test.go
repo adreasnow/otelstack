@@ -143,15 +143,15 @@ func TestStartStack(t *testing.T) {
 			time.Sleep(time.Second * 1)
 
 			t.Run("test traces", func(t *testing.T) {
-				traces, err := s.Jaeger.GetTraces(5, serviceName)
+				traces, err := s.Jaeger.GetTraces(1, 10, serviceName)
 				require.NoError(t, err, "must be able to get traces")
-				require.Len(t, traces.Data, 1)
-				require.Len(t, traces.Data[0].Spans, 1)
-				assert.Equal(t, "test.segment", traces.Data[0].Spans[0].OperationName)
+				require.Len(t, traces, 1)
+				require.Len(t, traces[0].Spans, 1)
+				assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
 			})
 
 			t.Run("test logs", func(t *testing.T) {
-				events, err := s.Seq.GetEvents(5)
+				events, err := s.Seq.GetEvents(1, 10)
 				require.NoError(t, err)
 				require.Len(t, events, 1)
 				require.Len(t, events[0].MessageTemplateTokens, 1)

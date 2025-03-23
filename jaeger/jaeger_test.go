@@ -82,16 +82,15 @@ func TestGetTraces(t *testing.T) {
 
 	var traces Traces
 	for range 10 {
-		fmt.Println("check")
-		traces, err = j.GetTraces(5, serviceName)
+		traces, err = j.GetTraces(1, 10, serviceName)
 		require.NoError(t, err, "must be able to get traces")
-		if len(traces.Data) > 0 {
+		if len(traces) > 0 {
 			break
 		}
 		time.Sleep(time.Second * 3)
 	}
 
-	require.Len(t, traces.Data, 1)
-	require.Len(t, traces.Data[0].Spans, 1)
-	assert.Equal(t, "test.segment", traces.Data[0].Spans[0].OperationName)
+	require.Len(t, traces, 1)
+	require.Len(t, traces[0].Spans, 1)
+	assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
 }
