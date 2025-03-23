@@ -24,8 +24,8 @@ type Jaeger struct {
 	Name    string
 }
 
-// JaegerTraces holds the retured traces from Jaeger.
-type JaegerTraces struct {
+// Traces holds the returned traces from Jaeger.
+type Traces struct {
 	Data []struct {
 		TraceID string `json:"traceID"`
 		Spans   []struct {
@@ -37,7 +37,7 @@ type JaegerTraces struct {
 }
 
 // GetTraces takes in a service names and returns the last n traces corresponding to that service.
-func (j *Jaeger) GetTraces(maxTraces int, service string) (traces JaegerTraces, err error) {
+func (j *Jaeger) GetTraces(maxTraces int, service string) (traces Traces, err error) {
 	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), maxTraces)
 
 	resp, err := http.Get(endpoint)

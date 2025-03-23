@@ -23,8 +23,8 @@ type Seq struct {
 	Name    string
 }
 
-// SeqEvents holds the returned logging events from Seq.
-type SeqEvents []struct {
+// Events holds the returned logging events from Seq.
+type Events []struct {
 	Timestamp             time.Time `json:"Timestamp"`
 	MessageTemplateTokens []struct {
 		Text string `json:"Text"`
@@ -37,7 +37,7 @@ type SeqEvents []struct {
 }
 
 // GetEvents takes returns the last n logging events that were received by Seq.
-func (s *Seq) GetEvents(maxEvents int) (events SeqEvents, err error) {
+func (s *Seq) GetEvents(maxEvents int) (events Events, err error) {
 	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), maxEvents)
 
 	resp, err := http.Get(endpoint)

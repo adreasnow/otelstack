@@ -25,7 +25,7 @@ type Stack struct {
 	Seq       seq.Seq
 }
 
-// New creates a new Stack and popultes it with child container structs.
+// New creates a new Stack and populates it with child container structs.
 func New() *Stack {
 	s := new(Stack)
 	s.Collector = collector.Collector{}
@@ -51,7 +51,7 @@ func (s *Stack) SetTestEnvHTTP(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 }
 
-// Start creates a testcotainer network and starts up all the child containers.
+// Start creates a testcontainer network and starts up all the child containers.
 func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	network, err := network.New(ctx)
