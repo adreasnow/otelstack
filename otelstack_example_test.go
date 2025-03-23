@@ -42,7 +42,15 @@ func TestExampleSetupStack(t *testing.T) {
 	t.Logf("OTEL gRPC endpoint: http://localhost:%d", stack.Collector.Ports[4317].Int())
 
 	// Continue to initialise your own otel setup here
-	setupOTELgRPC(t)
+	shutdown := setupOTELgRPC(t)
+
+	// As a backup in case something happens before shutdown is manually called
+	t.Cleanup(func() {
+		// t.Context() will be closed before this is called, so be sure to use a new context
+		if err := shutdown(context.Background()); err != nil {
+			t.Logf("error shutting down otel: %v", err)
+		}
+	})
 
 	{ // send some traces and logs to otel
 		tracer := otel.Tracer(serviceName)
@@ -61,15 +69,21 @@ func TestExampleSetupStack(t *testing.T) {
 		span.End()
 	}
 
-	time.Sleep(time.Second * 4)
+	// Shut down OTEL to allow everything to propagate
+	err = shutdown(context.Background())
+	require.NoError(t, err)
+	time.Sleep(time.Second * 1)
 
-	// Get traces from Jaeger
-	traces, err := stack.Jaeger.GetTraces(t.Context(), 5, serviceName)
+	// Get traces from Jaeger (this can take a while to propagate from
+	// span --> collector --> jaeger, so we'll keep trying for a while)
+	traces, err := stack.Jaeger.GetTraces(1, 10, serviceName)
 	require.NoError(t, err, "must be able to get traces")
-	assert.Equal(t, "test-segment", traces.Data[0].Spans[0].OperationName)
+
+	require.NoError(t, err, "must be able to get traces")
+	assert.Equal(t, "test-segment", traces[0].Spans[0].OperationName)
 
 	// Get log events from Seq
-	events, err := stack.Seq.GetEvents(t.Context(), 5)
+	events, err := stack.Seq.GetEvents(1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 

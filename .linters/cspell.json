@@ -47,6 +47,8 @@
     "tescontainer",
     "testcontainer",
     "testcontainers",
-    "testname"
+    "testname",
+    "jsonfile",
+    "ctrf"
   ]
 }

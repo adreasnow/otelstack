@@ -1,3 +1,4 @@
+// Package collector holds the resources needed to start an OTEL collector testcontainer
 package collector
 
 import (
@@ -12,6 +13,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Collector hold the testcontainer, ports and network used by the OTEL collector.
+// If instantiating yourself, be sure to populate Collector.Network, otherwise a new network will be generated.
 type Collector struct {
 	Ports   map[int]nat.Port
 	config  string
@@ -19,6 +22,7 @@ type Collector struct {
 	Name    string
 }
 
+// Start starts the OTEL collector container.
 func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	var err error
@@ -39,7 +43,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 			Image:        "otel/opentelemetry-collector:0.117.0",
 			ExposedPorts: []string{"4317/tcp", "4318/tcp", "13133/tcp"},
 			Networks:     []string{c.Network.Name},
-			WaitingFor:   wait.ForLog("Everything is ready. Begin running and processing data"),
+			WaitingFor:   wait.ForListeningPort("13133/tcp"),
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/otelcol/config.yaml",
 				Reader:            strings.NewReader(c.config),
@@ -79,9 +83,6 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-
-processors:
-  batch:
 
 exporters:
   otlp:

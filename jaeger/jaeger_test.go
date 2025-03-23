@@ -50,40 +50,40 @@ func TestGetTraces(t *testing.T) {
 
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", j.Ports[4317].Int()))
 
-	{ // set up otel tracer
-		exporter, err := otlptracegrpc.New(t.Context())
-		require.NoError(t, err, "must be able to set up exporter")
+	// set up otel tracer
+	exporter, err := otlptracegrpc.New(t.Context())
+	require.NoError(t, err, "must be able to set up exporter")
 
-		resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
-		require.NoError(t, err, "must be able to set up resources")
+	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
+	require.NoError(t, err, "must be able to set up resources")
 
-		otel.SetTracerProvider(
-			sdktrace.NewTracerProvider(
-				sdktrace.WithSampler(sdktrace.AlwaysSample()),
-				sdktrace.WithSyncer(exporter),
-				sdktrace.WithResource(resources),
-			),
-		)
+	otel.SetTracerProvider(
+		sdktrace.NewTracerProvider(
+			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+			sdktrace.WithSyncer(exporter),
+			sdktrace.WithResource(resources),
+		),
+	)
 
-		t.Cleanup(func() {
-			if err := exporter.Shutdown(context.Background()); err != nil {
-				t.Logf("error shutting down exporter: %v", err)
-			}
-		})
-	}
+	t.Cleanup(func() {
+		if err := exporter.Shutdown(context.Background()); err != nil {
+			t.Logf("error shutting down exporter: %v", err)
+		}
+	})
 
 	{ // send trace
 		tracer := otel.Tracer(serviceName)
 		_, span := tracer.Start(t.Context(), "test.segment")
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 100)
 		span.End()
 	}
 
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 1)
 
-	traces, err := j.GetTraces(t.Context(), 5, serviceName)
+	traces, err := j.GetTraces(1, 10, serviceName)
 	require.NoError(t, err, "must be able to get traces")
-	require.Len(t, traces.Data, 1)
-	require.Len(t, traces.Data[0].Spans, 1)
-	assert.Equal(t, "test.segment", traces.Data[0].Spans[0].OperationName)
+
+	require.Len(t, traces, 1)
+	require.Len(t, traces[0].Spans, 1)
+	assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
 }

@@ -1,3 +1,4 @@
+// Package seq holds the resources needed to start a Seq testcontainer.
 package seq
 
 import (
@@ -14,13 +15,16 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Seq hold the testcontainer, ports and network used by Seq. If instantiating yourself,
+// be sure to populate Seq.Network, otherwise a new network will be generated.
 type Seq struct {
 	Ports   map[int]nat.Port
 	Network *testcontainers.DockerNetwork
 	Name    string
 }
 
-type seqEvents []struct {
+// Events holds the returned logging events from Seq.
+type Events []struct {
 	Timestamp             time.Time `json:"Timestamp"`
 	MessageTemplateTokens []struct {
 		Text string `json:"Text"`
@@ -32,35 +36,48 @@ type seqEvents []struct {
 	ID string `json:"Id"`
 }
 
-func (s *Seq) GetEvents(ctx context.Context, maxEvents int) (events seqEvents, err error) {
-	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), maxEvents)
+// GetEvents takes returns the last n logging events that were received by Seq.
+// There is a retry mechanism implemented; `GetEvents` will keep fetching every 2 seconds, for a maximum
+// of `maxRetries` times, until Jaeger returns `expectedEvents` number of events.
+func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, err error) {
+	var resp *http.Response
+	var body []byte
+	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), expectedEvents)
 
-	resp, err := http.Get(endpoint)
-	if err != nil {
-		err = fmt.Errorf("must be able to get events from seq: %v", err)
-		return
-	}
+	for range maxRetries {
+		resp, err = http.Get(endpoint)
+		if err != nil {
+			err = fmt.Errorf("must be able to get events from seq: %v", err)
+			return
+		}
 
-	if resp.StatusCode != 200 {
-		err = fmt.Errorf("must be a 200 response: %v", err)
-		return
-	}
+		if resp.StatusCode != 200 {
+			err = fmt.Errorf("must be a 200 response: %v", err)
+			return
+		}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		err = fmt.Errorf("must be able to get set body from seq response: %v", err)
-		return
-	}
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			err = fmt.Errorf("must be able to get set body from seq response: %v", err)
+			return
+		}
 
-	err = json.Unmarshal(body, &events)
-	if err != nil {
-		err = fmt.Errorf("must be able unmarshal events: %v", err)
-		return
+		err = json.Unmarshal(body, &events)
+		if err != nil {
+			err = fmt.Errorf("must be able unmarshal events: %v", err)
+			return
+		}
+		if len(events) == expectedEvents {
+			break
+		}
+
+		time.Sleep(time.Second * 2)
 	}
 
 	return
 }
 
+// Start starts the Seq container.
 func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	var err error
@@ -79,7 +96,7 @@ func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 			Image:        "datalust/seq:2024.3",
 			ExposedPorts: []string{"80/tcp", "5341/tcp"},
 			Networks:     []string{s.Network.Name},
-			WaitingFor:   wait.ForLog("Seq listening on"),
+			WaitingFor:   wait.ForListeningPort("80/tcp"),
 			Env:          map[string]string{"ACCEPT_EULA": "Y"},
 		},
 		Started: true,

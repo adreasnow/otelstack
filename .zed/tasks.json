@@ -1,7 +1,11 @@
 [
   {
-    "label": "Lint",
+    "label": "Lint w/ GolangCI-Lint",
     "command": "go tool golangci-lint run"
+  },
+  {
+    "label": "Lint w/ Revive",
+    "command": "go tool revive -set_exit_status ./... "
   },
   {
     "label": "Run Tests",
