@@ -1,3 +1,8 @@
+// Package otelstack provides a full OTEL collector and reciever clients
+// conveniently contained within testcontainers. It removes the hassle
+// of managing inter-container communication, has built in querying
+// for validating your tests, and uses lightweight services (seq and Jaeger) to keep
+// start time low.
 package otelstack
 
 import (
@@ -13,14 +18,16 @@ import (
 	"github.com/testcontainers/testcontainers-go/network"
 )
 
-type stack struct {
+// Stack holds structs containing to all the testcontainers.
+type Stack struct {
 	Collector collector.Collector
 	Jaeger    jaeger.Jaeger
 	Seq       seq.Seq
 }
 
-func New() *stack {
-	s := new(stack)
+// New creates a new Stack and popultes it with child container structs.
+func New() *Stack {
+	s := new(Stack)
 	s.Collector = collector.Collector{}
 	s.Jaeger = jaeger.Jaeger{}
 	s.Seq = seq.Seq{}
@@ -28,19 +35,24 @@ func New() *stack {
 	return s
 }
 
-func (s *stack) SetTestEnvGRPC(t *testing.T) {
+// SetTestEnvGRPC sets the environment variableOTEL_EXPORTER_OTLP_ENDPOINT
+// to the gRPC endpoint.
+func (s *Stack) SetTestEnvGRPC(t *testing.T) {
 	endpoint := fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4317].Int())
 	t.Logf(" setting endpoint to %s", endpoint)
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 }
 
-func (s *stack) SetTestEnvHTTP(t *testing.T) {
+// SetTestEnvHTTP sets the environment variableOTEL_EXPORTER_OTLP_ENDPOINT
+// to the HTTP endpoint
+func (s *Stack) SetTestEnvHTTP(t *testing.T) {
 	endpoint := fmt.Sprintf("http://localhost:%d", s.Collector.Ports[4318].Int())
 	t.Logf(" setting endpoint to %s", endpoint)
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
 }
 
-func (s *stack) Start(ctx context.Context) (func(context.Context) error, error) {
+// Start creates a tescotainer network and starts up all the child containers.
+func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	network, err := network.New(ctx)
 	if err != nil {

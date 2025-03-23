@@ -61,6 +61,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
+	github.com/ctrf-io/go-ctrf-json-reporter v0.0.9 // indirect
 	github.com/curioswitch/go-reassign v0.3.0 // indirect
 	github.com/daixiang0/gci v0.13.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -256,6 +257,7 @@ require (
 )
 
 tool (
+	github.com/ctrf-io/go-ctrf-json-reporter/cmd/go-ctrf-json-reporter
 	github.com/golangci/golangci-lint/cmd/golangci-lint
 	gotest.tools/gotestsum
 )

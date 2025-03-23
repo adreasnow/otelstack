@@ -98,7 +98,7 @@ func TestStartStack(t *testing.T) {
 	}{{"gRPC"}, {"HTTP"}}
 	for _, tt := range testData {
 		t.Run(tt.name, func(t *testing.T) {
-			s := stack{}
+			s := Stack{}
 			shutdownFunc, err := s.Start(t.Context())
 			require.NoError(t, err, "stack must be able to start")
 			t.Cleanup(func() {

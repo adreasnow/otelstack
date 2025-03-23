@@ -1,3 +1,4 @@
+// Package collector holds the resources needed to start an OTEL collector testcontainer
 package collector
 
 import (
@@ -12,6 +13,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Collector hold the testcontainer, ports and network used by the OTEL collector.
+// If instansiating yourself, be sure to popule Collector.Network, otherwise a new network will be generated.
 type Collector struct {
 	Ports   map[int]nat.Port
 	config  string
@@ -19,6 +22,7 @@ type Collector struct {
 	Name    string
 }
 
+// Start starts the OTEL collector container.
 func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	var err error

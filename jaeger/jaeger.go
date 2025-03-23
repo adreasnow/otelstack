@@ -1,3 +1,4 @@
+// Package jaeger holds the resources needed to start a Jaeger testcontainer container.
 package jaeger
 
 import (
@@ -15,6 +16,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Jaeger hold the testcontainer, ports and network used by Jaeger. If instansiating yourself,
+// be sure to popule Jaeger.Network, otherwise a new network will be generated.
 type Jaeger struct {
 	Ports   map[int]nat.Port
 	Network *testcontainers.DockerNetwork
@@ -32,6 +35,7 @@ type jaegerTraces struct {
 	} `json:"data"`
 }
 
+// GetTraces takes in a service names and returns the last n traces corresponding to that service.
 func (j *Jaeger) GetTraces(ctx context.Context, maxTraces int, service string) (traces jaegerTraces, err error) {
 	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), maxTraces)
 
@@ -61,6 +65,7 @@ func (j *Jaeger) GetTraces(ctx context.Context, maxTraces int, service string) (
 	return
 }
 
+// Start starts the Jaeger container.
 func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error) {
 	emptyFunc := func(context.Context) error { return nil }
 	var err error

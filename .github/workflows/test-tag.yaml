@@ -46,7 +46,7 @@ jobs:
       - name: Test
         run: >
           go tool gotestsum
-          --junitfile report.xml
+          --jsonfile gotestsum.json
           --packages="./..."
           --format testname
           --rerun-fails=3
@@ -54,15 +54,34 @@ jobs:
           -coverpkg=./...
           -coverprofile=coverage.out
 
-      - name: Attach tests to GHA
-        uses: dorny/test-reporter@v2.0.0
+      - name: Convert report into ctrf
         if: ${{ !cancelled() }}
-        id: tests
+        run: go tool go-ctrf-json-reporter -output report.json < gotestsum.json
+
+      - name: Publish Test Report to PR
+        uses: ctrf-io/github-test-reporter@v1.0.10
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Test Results
-          reporter: java-junit
-          path: report.xml
-          max-annotations: 30
+          title: Test Results
+          report-path: "report.json"
+          pull-request: true
+          pull-request-report: true
+          comment-tag: ${{ github.workflow }}-${{ github.job }}
+          overwrite-comment: true
+
+      - name: Publish Test Report to Summary
+        uses: ctrf-io/github-test-reporter@v1.0.10
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          title: Test Results
+          report-path: "report.json"
+          summary: true
+          summary-report: true
+          failed-report: true
 
       - name: Update coverage report
         uses: ncruces/go-coverage-report@main
@@ -87,7 +106,7 @@ jobs:
 
       - name: MegaLinter
         id: ml
-        uses: oxsecurity/megalinter/flavors/documentation@v8
+        uses: oxsecurity/megalinter/flavors/go@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_STATUS_REPORTER: true

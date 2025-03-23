@@ -2,7 +2,7 @@
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/adreasnow/otelstack) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/adreasnow/otelstack/main/LICENSE) [![Build Status](https://github.com/adreasnow/otelstack/actions/workflows/test-tag.yaml/badge.svg?branch=main)](https://github.com/adreasnow/otelstack/actions/workflows/test-tag.yaml) [![Go Coverage](https://github.com/adreasnow/otelstack/wiki/coverage.svg)](https://raw.githack.com/wiki/adreasnow/otelstack/coverage.html)
 
-The otelstack package provides an easy to use pop-up OTEL testcontainers stack for use in go
+Package otelstack provides a full OTEL collector and reciever clients conveniently contained within testcontainers. It removes the hassle of managing inter-container communication, has built in querying for validating your tests, and uses lightweight services (seq and Jaeger) to keep startup time low.
 
 ## Usage
 
