@@ -78,13 +78,19 @@ func TestGetTraces(t *testing.T) {
 		span.End()
 	}
 
-	// shut doen the exporter to force sending traces
-	err = exporter.Shutdown(context.Background())
-	require.NoError(t, err, "the exporter should be able to shut down cleanly")
 	time.Sleep(time.Second * 1)
 
-	traces, err := j.GetTraces(5, serviceName)
-	require.NoError(t, err, "must be able to get traces")
+	var traces Traces
+	for range 10 {
+		fmt.Println("check")
+		traces, err = j.GetTraces(5, serviceName)
+		require.NoError(t, err, "must be able to get traces")
+		if len(traces.Data) > 0 {
+			break
+		}
+		time.Sleep(time.Second * 3)
+	}
+
 	require.Len(t, traces.Data, 1)
 	require.Len(t, traces.Data[0].Spans, 1)
 	assert.Equal(t, "test.segment", traces.Data[0].Spans[0].OperationName)

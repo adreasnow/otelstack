@@ -74,8 +74,17 @@ func TestExampleSetupStack(t *testing.T) {
 	require.NoError(t, err)
 	time.Sleep(time.Second * 1)
 
-	// Get traces from Jaeger
-	traces, err := stack.Jaeger.GetTraces(5, serviceName)
+	// Get traces from Jaeger (this can take a while to propagate from
+	// span --> collector --> jaeger, so we'll keep trying for a while)
+	var traces jaeger.Traces
+	for range 10 {
+		traces, err = stack.Jaeger.GetTraces(5, serviceName)
+		require.NoError(t, err, "must be able to get traces")
+		if len(traces.Data) > 0 {
+			break
+		}
+		time.Sleep(time.Second * 2)
+	}
 	require.NoError(t, err, "must be able to get traces")
 	assert.Equal(t, "test-segment", traces.Data[0].Spans[0].OperationName)
 

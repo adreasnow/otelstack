@@ -84,9 +84,6 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
-processors:
-  batch:
-
 exporters:
   otlp:
     endpoint: %s:4317

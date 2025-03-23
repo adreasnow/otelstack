@@ -60,36 +60,36 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	}
 
 	s.Jaeger.Network = network
-	jaegerShutdownFunc, err := s.Jaeger.Start(ctx)
+	jaegerShutdown, err := s.Jaeger.Start(ctx)
 	if err != nil {
 		return emptyFunc, fmt.Errorf("could not start jaeger: %v", err)
 	}
 
 	s.Seq.Network = network
-	seqShutdownFunc, err := s.Seq.Start(ctx)
+	seqShutdown, err := s.Seq.Start(ctx)
 	if err != nil {
-		if err := jaegerShutdownFunc(ctx); err != nil {
+		if err := jaegerShutdown(context.Background()); err != nil {
 			fmt.Printf("could not shut down jaeger container: %v", err)
 		}
 		return emptyFunc, fmt.Errorf("could not start seq: %v", err)
 	}
 
 	s.Collector.Network = network
-	collectorShutdownFunc, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
+	collectorShutdown, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
 	if err != nil {
-		if err := jaegerShutdownFunc(ctx); err != nil {
+		if err := jaegerShutdown(context.Background()); err != nil {
 			fmt.Printf("could not shut down jaeger container: %v", err)
 		}
-		if err := seqShutdownFunc(ctx); err != nil {
+		if err := seqShutdown(context.Background()); err != nil {
 			fmt.Printf("could not shut down seq container: %v", err)
 		}
 		return emptyFunc, fmt.Errorf("could not start collector: %v", err)
 	}
 
 	shutdownFunc := func(context.Context) error {
-		err1 := jaegerShutdownFunc(ctx)
-		err2 := seqShutdownFunc(ctx)
-		err3 := collectorShutdownFunc(ctx)
+		err1 := jaegerShutdown(context.Background())
+		err2 := seqShutdown(context.Background())
+		err3 := collectorShutdown(context.Background())
 		err4 := network.Remove(ctx)
 		return errors.Join(err1, err2, err3, err4)
 	}
