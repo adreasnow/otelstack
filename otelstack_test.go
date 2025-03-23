@@ -2,6 +2,7 @@ package otelstack
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-func setupOTELHTTP(t *testing.T) {
+func setupOTELHTTP(t *testing.T) func(context.Context) error {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
@@ -31,15 +32,6 @@ func setupOTELHTTP(t *testing.T) {
 	traceExporter, err := otlptracehttp.New(t.Context())
 	require.NoError(t, err, "trace exporter must be started")
 
-	t.Cleanup(func() {
-		if err := logExporter.Shutdown(context.Background()); err != nil {
-			t.Logf("error shutting down stack: %v", err)
-		}
-		if err := traceExporter.Shutdown(context.Background()); err != nil {
-			t.Logf("error shutting down stack: %v", err)
-		}
-	})
-
 	otelLogGlobal.SetLoggerProvider(
 		sdklog.NewLoggerProvider(
 			sdklog.WithProcessor(
@@ -55,9 +47,16 @@ func setupOTELHTTP(t *testing.T) {
 			sdktrace.WithResource(resources),
 		),
 	)
+
+	return func(ctx context.Context) error {
+		return errors.Join(
+			logExporter.Shutdown(ctx),
+			traceExporter.Shutdown(ctx),
+		)
+	}
 }
 
-func setupOTELgRPC(t *testing.T) {
+func setupOTELgRPC(t *testing.T) func(context.Context) error {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
@@ -66,15 +65,6 @@ func setupOTELgRPC(t *testing.T) {
 	traceExporter, err := otlptracegrpc.New(t.Context())
 	require.NoError(t, err, "trace exporter must be started")
 
-	t.Cleanup(func() {
-		if err := logExporter.Shutdown(context.Background()); err != nil {
-			t.Logf("error shutting down stack: %v", err)
-		}
-		if err := traceExporter.Shutdown(context.Background()); err != nil {
-			t.Logf("error shutting down stack: %v", err)
-		}
-	})
-
 	otelLogGlobal.SetLoggerProvider(
 		sdklog.NewLoggerProvider(
 			sdklog.WithProcessor(
@@ -90,6 +80,13 @@ func setupOTELgRPC(t *testing.T) {
 			sdktrace.WithResource(resources),
 		),
 	)
+
+	return func(ctx context.Context) error {
+		return errors.Join(
+			logExporter.Shutdown(ctx),
+			traceExporter.Shutdown(ctx),
+		)
+	}
 }
 
 func TestStartStack(t *testing.T) {
@@ -107,14 +104,21 @@ func TestStartStack(t *testing.T) {
 				}
 			})
 
+			var shutdown func(context.Context) error
 			switch tt.name {
 			case "gRPC":
 				s.SetTestEnvGRPC(t)
-				setupOTELgRPC(t)
+				shutdown = setupOTELgRPC(t)
 			case "HTTP":
 				s.SetTestEnvHTTP(t)
-				setupOTELHTTP(t)
+				shutdown = setupOTELHTTP(t)
 			}
+
+			t.Cleanup(func() {
+				if err := shutdown(context.Background()); err != nil {
+					t.Logf("error shutting down otel: %v", err)
+				}
+			})
 
 			{ // send data
 				tracer := otel.Tracer(serviceName)
@@ -134,7 +138,9 @@ func TestStartStack(t *testing.T) {
 				span.End()
 			}
 
-			time.Sleep(time.Second * 4)
+			err = shutdown(context.Background())
+			require.NoError(t, err)
+			time.Sleep(time.Second * 1)
 
 			t.Run("test traces", func(t *testing.T) {
 				traces, err := s.Jaeger.GetTraces(5, serviceName)

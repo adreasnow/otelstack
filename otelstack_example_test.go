@@ -42,7 +42,15 @@ func TestExampleSetupStack(t *testing.T) {
 	t.Logf("OTEL gRPC endpoint: http://localhost:%d", stack.Collector.Ports[4317].Int())
 
 	// Continue to initialise your own otel setup here
-	setupOTELgRPC(t)
+	shutdown := setupOTELgRPC(t)
+
+	// As a backup in case somehting happens before shutdown is manually called
+	t.Cleanup(func() {
+		// t.Context() will be closed before this is called, so be sure to use a new context
+		if err := shutdown(context.Background()); err != nil {
+			t.Logf("error shutting down otel: %v", err)
+		}
+	})
 
 	{ // send some traces and logs to otel
 		tracer := otel.Tracer(serviceName)
@@ -61,8 +69,10 @@ func TestExampleSetupStack(t *testing.T) {
 		span.End()
 	}
 
-	// Allow everything to propagate
-	time.Sleep(time.Second * 7)
+	// Shut down OTEL to allow everything to propagate
+	err = shutdown(context.Background())
+	require.NoError(t, err)
+	time.Sleep(time.Second * 1)
 
 	// Get traces from Jaeger
 	traces, err := stack.Jaeger.GetTraces(5, serviceName)
