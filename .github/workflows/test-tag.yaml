@@ -27,7 +27,7 @@ jobs:
             go.sum
 
       - name: Run Golang-CI Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
 
   test:
     name: Run Tests
