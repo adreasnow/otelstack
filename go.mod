@@ -1,11 +1,10 @@
 module github.com/adreasnow/otelstack
 
 go 1.24.1
-
 require (
 	github.com/docker/go-connections v0.5.0
 	github.com/stretchr/testify v1.10.0
-	github.com/testcontainers/testcontainers-go v0.35.0
+	github.com/testcontainers/testcontainers-go v0.36.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.11.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.11.0
@@ -20,7 +19,7 @@ require (
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
 	4d63.com/gochecknoglobals v0.2.2 // indirect
-	dario.cat/mergo v1.0.0 // indirect
+	dario.cat/mergo v1.0.1 // indirect
 	github.com/4meepo/tagalign v1.4.2 // indirect
 	github.com/Abirdcfly/dupword v0.1.3 // indirect
 	github.com/Antonboom/errname v1.1.0 // indirect
@@ -63,7 +62,6 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/ckaznocha/intrange v0.3.1 // indirect
-	github.com/containerd/containerd v1.7.27 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
@@ -75,8 +73,9 @@ require (
 	github.com/denis-tingaikin/go-header v0.5.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
-	github.com/docker/docker v27.1.1+incompatible // indirect
+	github.com/docker/docker v28.0.1+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/ebitengine/purego v0.8.2 // indirect
 	github.com/ettle/strcase v0.2.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
@@ -146,7 +145,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/macabu/inamedparam v0.2.0 // indirect
-	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/maratori/testableexamples v1.0.0 // indirect
 	github.com/maratori/testpackage v1.1.1 // indirect
 	github.com/matoous/godox v1.1.0 // indirect
@@ -173,7 +172,7 @@ require (
 	github.com/nunnatsa/ginkgolinter v0.19.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0 // indirect
+	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -199,8 +198,7 @@ require (
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.28.0 // indirect
 	github.com/securego/gosec/v2 v2.22.2 // indirect
-	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
-	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/shirou/gopsutil/v4 v4.25.2 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sivchari/containedctx v1.0.3 // indirect
 	github.com/sonatard/noctx v0.1.0 // indirect
