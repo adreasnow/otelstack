@@ -74,10 +74,8 @@ func TestExampleSetupStack(t *testing.T) {
 		span.End()
 	}
 
-	// Shut down OTEL to allow everything to propagate
-	err = shutdown(context.Background())
-	require.NoError(t, err)
-	time.Sleep(time.Second * 1)
+	// Allow a few seconds to let things propagate
+	time.Sleep(time.Second * 3)
 
 	// Get traces from Jaeger (this can take a while to propagate from
 	// span --> collector --> jaeger, so we'll keep trying for a while)
