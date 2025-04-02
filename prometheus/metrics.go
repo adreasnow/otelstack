@@ -66,7 +66,6 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 		}
 
 		endpoint := fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
-		fmt.Println(endpoint)
 
 		resp, err = http.Get(endpoint)
 		if err != nil {
