@@ -38,7 +38,7 @@ func TestGetEvents(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	require.NoError(t, err, "request must be generated")
 
-	time.Sleep(3)
+	time.Sleep(time.Second * 3)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
