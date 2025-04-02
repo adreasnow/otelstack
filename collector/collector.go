@@ -90,11 +90,15 @@ exporters:
     tls:
       insecure: true
 
-  otlphttp:
+  otlphttp/logs:
     endpoint: http://%s/ingest/otlp
 
-  debug:
-    verbosity: basic
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    send_timestamps: true
+    metric_expiration: 180m
+    resource_to_telemetry_conversion:
+      enabled: true
 
 extensions:
   health_check:
@@ -110,14 +114,14 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp, debug]
+      exporters: [otlp]
 
     logs:
       receivers: [otlp]
-      exporters: [otlphttp, debug]
+      exporters: [otlphttp/logs]
 
     metrics:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [prometheus]
 `, jaegerName, seqName)
 }

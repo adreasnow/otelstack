@@ -7,6 +7,7 @@ import (
 
 	"github.com/adreasnow/otelstack/collector"
 	"github.com/adreasnow/otelstack/jaeger"
+	"github.com/adreasnow/otelstack/prometheus"
 	"github.com/adreasnow/otelstack/seq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,12 +38,16 @@ func TestExampleSetupStack(t *testing.T) {
 
 	// Ports can be accessed as such
 	t.Logf("Seq ui: http://localhost:%d", stack.Seq.Ports[80].Int())
-	t.Logf("Jaeger ui: http://localhost:%d", stack.Seq.Ports[16686].Int())
+	t.Logf("Jaeger ui: http://localhost:%d", stack.Jaeger.Ports[16686].Int())
+	t.Logf("Prometheus ui: http://localhost:%d", stack.Prometheus.Ports[9090].Int())
 
 	t.Logf("OTEL gRPC endpoint: http://localhost:%d", stack.Collector.Ports[4317].Int())
 
 	// Continue to initialise your own otel setup here
 	shutdown := setupOTELgRPC(t)
+
+	// Initialise a meter
+	startGoroutineMeter(t)
 
 	// As a backup in case something happens before shutdown is manually called
 	t.Cleanup(func() {
@@ -69,23 +74,27 @@ func TestExampleSetupStack(t *testing.T) {
 		span.End()
 	}
 
-	// Shut down OTEL to allow everything to propagate
-	err = shutdown(context.Background())
-	require.NoError(t, err)
-	time.Sleep(time.Second * 1)
+	// Allow a few seconds to let things propagate
+	time.Sleep(time.Second * 3)
 
 	// Get traces from Jaeger (this can take a while to propagate from
 	// span --> collector --> jaeger, so we'll keep trying for a while)
-	traces, err := stack.Jaeger.GetTraces(1, 10, serviceName)
+	traces, err := stack.Jaeger.GetTraces(1, 30, serviceName)
 	require.NoError(t, err, "must be able to get traces")
 
 	require.NoError(t, err, "must be able to get traces")
 	assert.Equal(t, "test-segment", traces[0].Spans[0].OperationName)
 
 	// Get log events from Seq
-	events, err := stack.Seq.GetEvents(1, 10)
+	events, err := stack.Seq.GetEvents(1, 30)
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
+
+	// Get metrics from Prometheus
+	metrics, err := stack.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+	require.NoError(t, err, "must be able to get metrics")
+
+	assert.Greater(t, metrics.Values[0][0].(float64), 5.0)
 
 }
 
@@ -123,6 +132,22 @@ func TestExampleSetupContainers(t *testing.T) {
 		})
 
 		t.Logf("Jaeger ui: http://localhost:%d", jaeger.Ports[16686].Int())
+	})
+
+	t.Run("test setup prometheus", func(t *testing.T) {
+		t.Parallel()
+		prometheus := prometheus.Prometheus{}
+		shutdownFunc, err := prometheus.Start(t.Context(), "collector")
+		require.NoError(t, err, "the container must start up")
+
+		// Be sure to defer shutdown of the stack
+		t.Cleanup(func() {
+			if err := shutdownFunc(context.Background()); err != nil {
+				t.Logf("error shutting down jaeger: %v", err)
+			}
+		})
+
+		t.Logf("Prometheus ui: http://localhost:%d", prometheus.Ports[9090].Int())
 	})
 
 	t.Run("test setup collector", func(t *testing.T) {

@@ -16,7 +16,6 @@ func TestGenerateConfig(t *testing.T) {
 
 	assert.Contains(t, c.config, "endpoint: http://seq/ingest/otlp")
 	assert.Contains(t, c.config, "endpoint: jaeger:4317")
-
 }
 
 func TestCollectorStart(t *testing.T) {
