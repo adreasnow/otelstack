@@ -41,8 +41,8 @@ t.Logf("OTEL gRPC endpoint: http://localhost:%d", stack.Collector.Ports[4317].In
   require.NoError(t, err)
   assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 
-  	// Get metrics from Prometheus
-	metrics, err := stack.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
-	require.NoError(t, err, "must be able to get metrics")
-	assert.Greater(t, metrics.Values[0][0].(float64), 5.0)
+  // Get metrics from Prometheus
+  metrics, err := stack.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+  require.NoError(t, err, "must be able to get metrics")
+  assert.Greater(t, metrics.Values[0][0].(float64), 5.0)
 ```
