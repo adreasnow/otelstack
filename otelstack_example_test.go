@@ -149,7 +149,7 @@ func TestExampleSetupContainers(t *testing.T) {
 			}
 		})
 
-		t.Logf("Promethus ui: http://localhost:%d", prometheus.Ports[9090].Int())
+		t.Logf("Prometheus ui: http://localhost:%d", prometheus.Ports[9090].Int())
 	})
 
 	t.Run("test setup collector", func(t *testing.T) {

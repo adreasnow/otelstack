@@ -1,3 +1,4 @@
+// Package seq holds the resources needed to start a Seq testcontainer.
 package seq
 
 import (

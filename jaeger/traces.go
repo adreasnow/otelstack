@@ -1,3 +1,4 @@
+// Package jaeger holds the resources needed to start a Jaeger testcontainer container.
 package jaeger
 
 import (

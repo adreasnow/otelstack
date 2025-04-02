@@ -1,3 +1,4 @@
+// Package prometheus holds the resources needed to start a Prometheus testcontainer container.
 package prometheus
 
 import (

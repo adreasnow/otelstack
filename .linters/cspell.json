@@ -49,6 +49,10 @@
     "testcontainers",
     "testname",
     "jsonfile",
-    "ctrf"
+    "ctrf",
+    "otlpmetric",
+    "otlpmetricgrpc",
+    "otlpmetrichttp",
+    "sdkmetric"
   ]
 }

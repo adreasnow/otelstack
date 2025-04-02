@@ -53,7 +53,7 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, fmt.Errorf("promethus could not start: %v", err)
+		return emptyFunc, fmt.Errorf("prometheus could not start: %v", err)
 	}
 
 	p.Name, err = container.Name(ctx)
