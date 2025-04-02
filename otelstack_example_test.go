@@ -96,6 +96,8 @@ func TestExampleSetupStack(t *testing.T) {
 	require.NoError(t, err, "must be able to get metrics")
 
 	num, err := strconv.Atoi(metrics.Values[0][1].(string))
+	require.NoError(t, err, "must be able to parse the metric value")
+
 	assert.Greater(t, num, 2)
 
 }

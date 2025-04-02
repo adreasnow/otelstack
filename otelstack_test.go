@@ -214,6 +214,8 @@ func TestStartStack(t *testing.T) {
 
 				assert.GreaterOrEqual(t, len(metrics.Values), 3)
 				num, err := strconv.Atoi(metrics.Values[0][1].(string))
+				require.NoError(t, err, "must be able to parse the metric value")
+
 				assert.Greater(t, num, 2)
 			})
 		})

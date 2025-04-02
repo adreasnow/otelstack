@@ -93,5 +93,7 @@ func TestGetMetrics(t *testing.T) {
 
 	assert.GreaterOrEqual(t, len(m.Values), 3)
 	num, err := strconv.Atoi(m.Values[0][1].(string))
+	require.NoError(t, err, "must be able to parse the metric value")
+
 	assert.Greater(t, num, 2)
 }
