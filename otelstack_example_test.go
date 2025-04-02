@@ -46,7 +46,7 @@ func TestExampleSetupStack(t *testing.T) {
 	// Continue to initialise your own otel setup here
 	shutdown := setupOTELgRPC(t)
 
-	// Initiliase a meter
+	// Initialise a meter
 	startGoroutineMeter(t)
 
 	// As a backup in case something happens before shutdown is manually called
