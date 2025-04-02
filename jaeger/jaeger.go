@@ -3,11 +3,8 @@ package jaeger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/docker/go-connections/nat"
@@ -22,65 +19,6 @@ type Jaeger struct {
 	Ports   map[int]nat.Port
 	Network *testcontainers.DockerNetwork
 	Name    string
-}
-
-type unmarshalStruct struct {
-	Traces Traces `json:"data"`
-}
-
-// Traces holds the returned traces from Jaeger.
-type Traces []struct {
-	TraceID string `json:"traceID"`
-	Spans   []struct {
-		TraceID       string `json:"traceID"`
-		SpanID        string `json:"spanID"`
-		OperationName string `json:"operationName"`
-	} `json:"spans"`
-}
-
-// GetTraces takes in a service names and returns the last n traces corresponding to that service.
-// There is a retry mechanism implemented; `GetTraces` will keep fetching every 2 seconds, for a maximum
-// of `maxRetries` times, until Jaeger returns `expectedTraces` number of traces.
-func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (traces Traces, err error) {
-	var resp *http.Response
-	var body []byte
-	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
-
-	for range maxRetries {
-		resp, err = http.Get(endpoint)
-		if err != nil {
-			err = fmt.Errorf("must be able to get traces from jaeger: %v", err)
-			return
-		}
-
-		if resp.StatusCode != 200 {
-			err = fmt.Errorf("must be a 200 response, got %d", resp.StatusCode)
-			return
-		}
-
-		body, err = io.ReadAll(resp.Body)
-		if err != nil {
-			err = fmt.Errorf("must be able to get set body from seq response: %v", err)
-			return
-		}
-
-		var u unmarshalStruct
-		err = json.Unmarshal(body, &u)
-		if err != nil {
-			err = fmt.Errorf("must be able unmarshal traces: %v", err)
-			return
-		}
-
-		traces = u.Traces
-
-		if len(traces) == expectedTraces {
-			break
-		}
-
-		time.Sleep(time.Second * 2)
-	}
-
-	return
 }
 
 // Start starts the Jaeger container.
@@ -99,10 +37,16 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "jaegertracing/all-in-one:1.65.0",
-			ExposedPorts: []string{"16686/tcp", "14268/tcp", "6831/tcp", "4317/tcp"},
+			Image:        "jaegertracing/jaeger:latest",
+			ExposedPorts: []string{"16686/tcp", "4318/tcp"},
 			Networks:     []string{j.Network.Name},
 			WaitingFor:   wait.ForListeningPort("16686/tcp"),
+			Cmd:          []string{"--config", "/etc/jaeger/config.yaml"},
+			Files: []testcontainers.ContainerFile{{
+				ContainerFilePath: "/etc/jaeger/config.yaml",
+				Reader:            strings.NewReader(config),
+				FileMode:          0644,
+			}},
 		},
 		Started: true,
 	})
@@ -116,7 +60,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 	}
 	j.Name = j.Name[1:]
 
-	for _, portNum := range []int{16686, 14268, 6831, 4317} {
+	for _, portNum := range []int{16686, 4318} {
 		j.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
 			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
@@ -127,3 +71,35 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 		return container.Terminate(ctx, testcontainers.StopTimeout(time.Second*30))
 	}, nil
 }
+
+var config = `service:
+  extensions: [jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [jaeger_storage_exporter]
+
+extensions:
+  jaeger_query:
+    storage:
+      traces: some_storage
+
+  jaeger_storage:
+    backends:
+      some_storage:
+        memory:
+          max_traces: 100000
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: some_storage
+`

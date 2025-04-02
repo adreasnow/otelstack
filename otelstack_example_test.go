@@ -7,6 +7,7 @@ import (
 
 	"github.com/adreasnow/otelstack/collector"
 	"github.com/adreasnow/otelstack/jaeger"
+	"github.com/adreasnow/otelstack/prometheus"
 	"github.com/adreasnow/otelstack/seq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,12 +38,16 @@ func TestExampleSetupStack(t *testing.T) {
 
 	// Ports can be accessed as such
 	t.Logf("Seq ui: http://localhost:%d", stack.Seq.Ports[80].Int())
-	t.Logf("Jaeger ui: http://localhost:%d", stack.Seq.Ports[16686].Int())
+	t.Logf("Jaeger ui: http://localhost:%d", stack.Jaeger.Ports[16686].Int())
+	t.Logf("Prometheus ui: http://localhost:%d", stack.Prometheus.Ports[9090].Int())
 
 	t.Logf("OTEL gRPC endpoint: http://localhost:%d", stack.Collector.Ports[4317].Int())
 
 	// Continue to initialise your own otel setup here
 	shutdown := setupOTELgRPC(t)
+
+	// Initiliase a meter
+	startGoroutineMeter(t)
 
 	// As a backup in case something happens before shutdown is manually called
 	t.Cleanup(func() {
@@ -87,6 +92,12 @@ func TestExampleSetupStack(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 
+	// Get metrics from Prometheus
+	metrics, err := stack.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+	require.NoError(t, err, "must be able to get metrics")
+
+	assert.Greater(t, metrics.Values[0][0].(float64), 5.0)
+
 }
 
 // Containers can also be started independently if needed, though they won't
@@ -123,6 +134,22 @@ func TestExampleSetupContainers(t *testing.T) {
 		})
 
 		t.Logf("Jaeger ui: http://localhost:%d", jaeger.Ports[16686].Int())
+	})
+
+	t.Run("test setup prometheus", func(t *testing.T) {
+		t.Parallel()
+		prometheus := prometheus.Prometheus{}
+		shutdownFunc, err := prometheus.Start(t.Context(), "collector")
+		require.NoError(t, err, "the container must start up")
+
+		// Be sure to defer shutdown of the stack
+		t.Cleanup(func() {
+			if err := shutdownFunc(context.Background()); err != nil {
+				t.Logf("error shutting down jaeger: %v", err)
+			}
+		})
+
+		t.Logf("Promethus ui: http://localhost:%d", prometheus.Ports[9090].Int())
 	})
 
 	t.Run("test setup collector", func(t *testing.T) {

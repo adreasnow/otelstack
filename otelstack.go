@@ -13,6 +13,7 @@ import (
 
 	"github.com/adreasnow/otelstack/collector"
 	"github.com/adreasnow/otelstack/jaeger"
+	"github.com/adreasnow/otelstack/prometheus"
 	"github.com/adreasnow/otelstack/seq"
 
 	"github.com/testcontainers/testcontainers-go/network"
@@ -20,9 +21,10 @@ import (
 
 // Stack holds structs containing to all the testcontainers.
 type Stack struct {
-	Collector collector.Collector
-	Jaeger    jaeger.Jaeger
-	Seq       seq.Seq
+	Collector  collector.Collector
+	Jaeger     jaeger.Jaeger
+	Seq        seq.Seq
+	Prometheus prometheus.Prometheus
 }
 
 // New creates a new Stack and populates it with child container structs.
@@ -31,6 +33,7 @@ func New() *Stack {
 	s.Collector = collector.Collector{}
 	s.Jaeger = jaeger.Jaeger{}
 	s.Seq = seq.Seq{}
+	s.Prometheus = prometheus.Prometheus{}
 
 	return s
 }
@@ -62,12 +65,18 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	s.Jaeger.Network = network
 	jaegerShutdown, err := s.Jaeger.Start(ctx)
 	if err != nil {
+		if err := network.Remove(ctx); err != nil {
+			fmt.Printf("could not shut down network: %v", err)
+		}
 		return emptyFunc, fmt.Errorf("could not start jaeger: %v", err)
 	}
 
 	s.Seq.Network = network
 	seqShutdown, err := s.Seq.Start(ctx)
 	if err != nil {
+		if err := network.Remove(ctx); err != nil {
+			fmt.Printf("could not shut down network: %v", err)
+		}
 		if err := jaegerShutdown(context.Background()); err != nil {
 			fmt.Printf("could not shut down jaeger container: %v", err)
 		}
@@ -77,6 +86,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	s.Collector.Network = network
 	collectorShutdown, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
 	if err != nil {
+		if err := network.Remove(ctx); err != nil {
+			fmt.Printf("could not shut down network: %v", err)
+		}
 		if err := jaegerShutdown(context.Background()); err != nil {
 			fmt.Printf("could not shut down jaeger container: %v", err)
 		}
@@ -86,12 +98,31 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		return emptyFunc, fmt.Errorf("could not start collector: %v", err)
 	}
 
+	s.Prometheus.Network = network
+	prometheusShutdown, err := s.Prometheus.Start(ctx, s.Collector.Name)
+	if err != nil {
+		if err := network.Remove(ctx); err != nil {
+			fmt.Printf("could not shut down network: %v", err)
+		}
+		if err := jaegerShutdown(context.Background()); err != nil {
+			fmt.Printf("could not shut down jaeger container: %v", err)
+		}
+		if err := seqShutdown(context.Background()); err != nil {
+			fmt.Printf("could not shut down seq container: %v", err)
+		}
+		if err := collectorShutdown(context.Background()); err != nil {
+			fmt.Printf("could not shut down collector container: %v", err)
+		}
+		return emptyFunc, fmt.Errorf("could not start prometheus: %v", err)
+	}
+
 	shutdownFunc := func(context.Context) error {
 		err1 := jaegerShutdown(context.Background())
 		err2 := seqShutdown(context.Background())
 		err3 := collectorShutdown(context.Background())
-		err4 := network.Remove(ctx)
-		return errors.Join(err1, err2, err3, err4)
+		err4 := prometheusShutdown(context.Background())
+		err5 := network.Remove(ctx)
+		return errors.Join(err1, err2, err3, err4, err5)
 	}
 
 	return shutdownFunc, nil
