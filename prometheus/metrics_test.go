@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
@@ -91,5 +92,8 @@ func TestGetMetrics(t *testing.T) {
 	require.NoError(t, err, "must be able to get metrics")
 
 	assert.GreaterOrEqual(t, len(m.Values), 3)
-	assert.Greater(t, m.Values[0][0].(float64), 5.0)
+	num, err := strconv.Atoi(m.Values[0][1].(string))
+	require.NoError(t, err, "must be able to parse the metric value")
+
+	assert.Greater(t, num, 2)
 }

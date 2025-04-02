@@ -2,6 +2,7 @@ package otelstack
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -94,7 +95,10 @@ func TestExampleSetupStack(t *testing.T) {
 	metrics, err := stack.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 	require.NoError(t, err, "must be able to get metrics")
 
-	assert.Greater(t, metrics.Values[0][0].(float64), 5.0)
+	num, err := strconv.Atoi(metrics.Values[0][1].(string))
+	require.NoError(t, err, "must be able to parse the metric value")
+
+	assert.Greater(t, num, 2)
 
 }
 
