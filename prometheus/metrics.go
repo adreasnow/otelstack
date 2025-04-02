@@ -103,5 +103,9 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 		time.Sleep(time.Second * 2)
 	}
 
+	if len(metrics.Values) < expectedDataPoints {
+		err = fmt.Errorf("could not get %d metric points in %d attempts: %v", expectedDataPoints, maxRetries, err)
+	}
+
 	return
 }

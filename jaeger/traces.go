@@ -66,5 +66,9 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 		time.Sleep(time.Second * 2)
 	}
 
+	if len(traces) < expectedTraces {
+		err = fmt.Errorf("could not get %d traces in %d attempts: %v", expectedTraces, maxRetries, err)
+	}
+
 	return
 }

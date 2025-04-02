@@ -81,14 +81,14 @@ func TestExampleSetupStack(t *testing.T) {
 
 	// Get traces from Jaeger (this can take a while to propagate from
 	// span --> collector --> jaeger, so we'll keep trying for a while)
-	traces, err := stack.Jaeger.GetTraces(1, 10, serviceName)
+	traces, err := stack.Jaeger.GetTraces(1, 30, serviceName)
 	require.NoError(t, err, "must be able to get traces")
 
 	require.NoError(t, err, "must be able to get traces")
 	assert.Equal(t, "test-segment", traces[0].Spans[0].OperationName)
 
 	// Get log events from Seq
-	events, err := stack.Seq.GetEvents(1, 10)
+	events, err := stack.Seq.GetEvents(1, 30)
 	require.NoError(t, err)
 	assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
 

@@ -60,5 +60,9 @@ func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, err 
 		time.Sleep(time.Second * 2)
 	}
 
+	if len(events) < expectedEvents {
+		err = fmt.Errorf("could not get %d events in %d attempts: %v", expectedEvents, maxRetries, err)
+	}
+
 	return
 }
