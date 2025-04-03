@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/adreasnow/otelstack/collector"
@@ -67,6 +68,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 
 	shutdown := func() {
 		var err error
+
+		// Reverse the slice so that the network is shut down last
+		slices.Reverse(shutdownFuncs)
 		for _, f := range shutdownFuncs {
 			err = errors.Join(err, f(ctx))
 		}
@@ -132,6 +136,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 
 	shutdownFunc := func(ctx context.Context) error {
 		var err error
+
+		// Reverse the slice so that the network is shut down last
+		slices.Reverse(shutdownFuncs)
 		for _, f := range shutdownFuncs {
 			err = errors.Join(err, f(ctx))
 		}
