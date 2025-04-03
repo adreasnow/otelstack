@@ -31,7 +31,7 @@ type Stack struct {
 }
 
 // New creates a new Stack and populates it with child container structs.
-// Setting the services toggles will disables or enable the respective receever containers.
+// Setting the services toggles will disables or enable the respective receiver containers.
 func New(metrics bool, logs bool, traces bool) *Stack {
 	return &Stack{
 		Collector:  collector.Collector{},
