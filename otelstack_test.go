@@ -2,7 +2,7 @@ package otelstack
 
 import (
 	"context"
-	"errors"
+	"net/http"
 	"runtime"
 	"strconv"
 	"testing"
@@ -29,6 +29,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+var serviceName = "test-service"
+
 func startGoroutineMeter(t *testing.T) {
 	t.Helper()
 	meter := otel.Meter(serviceName)
@@ -42,104 +44,153 @@ func startGoroutineMeter(t *testing.T) {
 	require.NoError(t, err, "must be able to start goroutine meter")
 }
 
-func setupOTELHTTP(t *testing.T) func(context.Context) error {
+func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
-	logExporter, err := otlploghttp.New(t.Context())
-	require.NoError(t, err, "log exporter must be started")
-	traceExporter, err := otlptracehttp.New(t.Context())
-	require.NoError(t, err, "trace exporter must be started")
-	metricExporter, err := otlpmetrichttp.New(t.Context())
-	require.NoError(t, err, "must be able to set up exporter")
+	shutdownFuncs := []func(){}
 
-	otelLogGlobal.SetLoggerProvider(
-		sdklog.NewLoggerProvider(
-			sdklog.WithProcessor(
-				sdklog.NewSimpleProcessor(logExporter),
+	if metrics {
+		metricExporter, err := otlpmetrichttp.New(t.Context())
+		require.NoError(t, err, "must be able to set up exporter")
+		otel.SetMeterProvider(
+			sdkmetric.NewMeterProvider(
+				sdkmetric.WithResource(resources),
+				sdkmetric.WithReader(
+					sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(time.Second)),
+				),
 			),
-			sdklog.WithResource(resources),
-		),
-	)
-
-	otel.SetTracerProvider(
-		sdktrace.NewTracerProvider(
-			sdktrace.WithSyncer(traceExporter),
-			sdktrace.WithResource(resources),
-		),
-	)
-
-	otel.SetMeterProvider(
-		sdkmetric.NewMeterProvider(
-			sdkmetric.WithResource(resources),
-			sdkmetric.WithReader(
-				sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(time.Second)),
-			),
-		),
-	)
-
-	return func(ctx context.Context) error {
-		return errors.Join(
-			logExporter.Shutdown(ctx),
-			traceExporter.Shutdown(ctx),
-			metricExporter.Shutdown(ctx),
 		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := metricExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown metric exporter: %v", err)
+			}
+		})
 	}
 
+	if logs {
+		logExporter, err := otlploghttp.New(t.Context())
+		require.NoError(t, err, "log exporter must be started")
+		otelLogGlobal.SetLoggerProvider(
+			sdklog.NewLoggerProvider(
+				sdklog.WithProcessor(
+					sdklog.NewSimpleProcessor(logExporter),
+				),
+				sdklog.WithResource(resources),
+			),
+		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := logExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown logs exporter: %v", err)
+			}
+		})
+	}
+
+	if traces {
+		traceExporter, err := otlptracehttp.New(t.Context())
+		require.NoError(t, err, "trace exporter must be started")
+
+		otel.SetTracerProvider(
+			sdktrace.NewTracerProvider(
+				sdktrace.WithSyncer(traceExporter),
+				sdktrace.WithResource(resources),
+			),
+		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := traceExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown traces exporter: %v", err)
+			}
+		})
+	}
+
+	return func() {
+		for _, f := range shutdownFuncs {
+			f()
+		}
+	}
 }
 
-func setupOTELgRPC(t *testing.T) func(context.Context) error {
+func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
-	logExporter, err := otlploggrpc.New(t.Context())
-	require.NoError(t, err, "log exporter must be started")
-	traceExporter, err := otlptracegrpc.New(t.Context())
-	require.NoError(t, err, "trace exporter must be started")
-	metricExporter, err := otlpmetricgrpc.New(t.Context())
-	require.NoError(t, err, "must be able to set up exporter")
+	shutdownFuncs := []func(){}
 
-	otelLogGlobal.SetLoggerProvider(
-		sdklog.NewLoggerProvider(
-			sdklog.WithProcessor(
-				sdklog.NewSimpleProcessor(logExporter),
+	if metrics {
+		metricExporter, err := otlpmetricgrpc.New(t.Context())
+		require.NoError(t, err, "must be able to set up exporter")
+		otel.SetMeterProvider(
+			sdkmetric.NewMeterProvider(
+				sdkmetric.WithResource(resources),
+				sdkmetric.WithReader(
+					sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(time.Second)),
+				),
 			),
-			sdklog.WithResource(resources),
-		),
-	)
-
-	otel.SetTracerProvider(
-		sdktrace.NewTracerProvider(
-			sdktrace.WithSyncer(traceExporter),
-			sdktrace.WithResource(resources),
-		),
-	)
-
-	otel.SetMeterProvider(
-		sdkmetric.NewMeterProvider(
-			sdkmetric.WithResource(resources),
-			sdkmetric.WithReader(
-				sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(time.Second)),
-			),
-		),
-	)
-
-	return func(ctx context.Context) error {
-		return errors.Join(
-			logExporter.Shutdown(ctx),
-			traceExporter.Shutdown(ctx),
-			metricExporter.Shutdown(ctx),
 		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := metricExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown metric exporter: %v", err)
+			}
+		})
+	}
+
+	if logs {
+		logExporter, err := otlploggrpc.New(t.Context())
+		require.NoError(t, err, "log exporter must be started")
+		otelLogGlobal.SetLoggerProvider(
+			sdklog.NewLoggerProvider(
+				sdklog.WithProcessor(
+					sdklog.NewSimpleProcessor(logExporter),
+				),
+				sdklog.WithResource(resources),
+			),
+		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := logExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown logs exporter: %v", err)
+			}
+		})
+	}
+
+	if traces {
+		traceExporter, err := otlptracegrpc.New(t.Context())
+		require.NoError(t, err, "trace exporter must be started")
+
+		otel.SetTracerProvider(
+			sdktrace.NewTracerProvider(
+				sdktrace.WithSyncer(traceExporter),
+				sdktrace.WithResource(resources),
+			),
+		)
+
+		shutdownFuncs = append(shutdownFuncs, func() {
+			if err := traceExporter.Shutdown(context.Background()); err != nil {
+				t.Logf("failed to shutdown traces exporter: %v", err)
+			}
+		})
+	}
+
+	return func() {
+		for _, f := range shutdownFuncs {
+			f()
+		}
 	}
 }
 
-func TestStartStack(t *testing.T) {
+func TestStart(t *testing.T) {
 	testData := []struct {
 		name string
 	}{{"gRPC"}, {"HTTP"}}
 	for _, tt := range testData {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Stack{}
+			s := Stack{
+				traces: true,
+			}
 			shutdownFunc, err := s.Start(t.Context())
 			require.NoError(t, err, "stack must be able to start")
 			t.Cleanup(func() {
@@ -148,53 +199,24 @@ func TestStartStack(t *testing.T) {
 				}
 			})
 
-			var shutdown func(context.Context) error
+			var shutdown func()
 			switch tt.name {
 			case "gRPC":
 				s.SetTestEnvGRPC(t)
-				shutdown = setupOTELgRPC(t)
+				shutdown = setupOTELgRPC(t, false, false, true)
 			case "HTTP":
 				s.SetTestEnvHTTP(t)
-				shutdown = setupOTELHTTP(t)
+				shutdown = setupOTELHTTP(t, false, false, true)
 			}
 
-			t.Cleanup(func() {
-				if err := shutdown(context.Background()); err != nil {
-					t.Logf("error shutting down otel: %v", err)
-				}
-			})
+			t.Cleanup(shutdown)
 
 			{ // send data
-				startGoroutineMeter(t)
-
 				tracer := otel.Tracer(serviceName)
 				ctx, span := tracer.Start(t.Context(), "test.segment")
 				trace.SpanFromContext(ctx).SetAttributes(attribute.String("test.key", "test_value"))
-
-				record := log.Record{}
-				record.SetTimestamp(time.Now())
-				record.SetBody(log.StringValue("test message"))
-				record.SetSeverity(log.SeverityError)
-				record.SetSeverityText("ERROR")
-				record.AddAttributes(log.String("SpanID", span.SpanContext().SpanID().String()))
-				record.AddAttributes(log.String("TraceID", span.SpanContext().TraceID().String()))
-				otelLogGlobal.GetLoggerProvider().
-					Logger(serviceName).
-					Emit(t.Context(), record)
 				span.End()
 			}
-
-			time.Sleep(time.Second * 3)
-
-			t.Run("test logs", func(t *testing.T) {
-				t.Parallel()
-
-				events, err := s.Seq.GetEvents(1, 30)
-				require.NoError(t, err)
-				require.Len(t, events, 1)
-				require.Len(t, events[0].MessageTemplateTokens, 1)
-				assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
-			})
 
 			t.Run("test traces", func(t *testing.T) {
 				t.Parallel()
@@ -206,18 +228,128 @@ func TestStartStack(t *testing.T) {
 				assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
 			})
 
-			t.Run("test metrics", func(t *testing.T) {
-				t.Parallel()
-
-				metrics, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
-				require.NoError(t, err, "must be able to get metrics")
-
-				assert.GreaterOrEqual(t, len(metrics.Values), 3)
-				num, err := strconv.Atoi(metrics.Values[0][1].(string))
-				require.NoError(t, err, "must be able to parse the metric value")
-
-				assert.Greater(t, num, 2)
-			})
 		})
 	}
+}
+
+func TestNew(t *testing.T) {
+	t.Run("all services", func(t *testing.T) {
+		s := New(true, true, true)
+		shutdownStack, err := s.Start(t.Context())
+		require.NoError(t, err, "the stack must start up")
+
+		t.Cleanup(func() {
+			if err := shutdownStack(context.Background()); err != nil {
+				t.Logf("error shutting down otel: %v", err)
+			}
+		})
+
+		time.Sleep(time.Second * 3)
+
+		resp, err := http.Get("http://localhost:" + s.Seq.Ports[80].Port())
+		require.NoError(t, err, "must be able to call seq")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		resp, err = http.Get("http://localhost:" + s.Jaeger.Ports[16686].Port())
+		require.NoError(t, err, "must be able to call jaeger")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		resp, err = http.Get("http://localhost:" + s.Prometheus.Ports[9090].Port())
+		require.NoError(t, err, "must be able to call prometheus")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		resp, err = http.Get("http://localhost:" + s.Collector.Ports[13133].Port() + "/health/status")
+		require.NoError(t, err, "must be able to call collector")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("metrics only", func(t *testing.T) {
+		s := New(true, false, false)
+		shutdownStack, err := s.Start(t.Context())
+		require.NoError(t, err, "the stack must start up")
+
+		t.Cleanup(func() {
+			if err := shutdownStack(context.Background()); err != nil {
+				t.Logf("error shutting down otel: %v", err)
+			}
+		})
+
+		s.SetTestEnvGRPC(t)
+		shutdownOTEL := setupOTELgRPC(t, true, false, false)
+		t.Cleanup(shutdownOTEL)
+
+		startGoroutineMeter(t)
+
+		metrics, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+		require.NoError(t, err, "must be able to get metrics")
+
+		assert.GreaterOrEqual(t, len(metrics.Values), 3)
+		num, err := strconv.Atoi(metrics.Values[0][1].(string))
+		require.NoError(t, err, "must be able to parse the metric value")
+
+		assert.Greater(t, num, 2)
+	})
+
+	t.Run("logs only", func(t *testing.T) {
+		s := New(false, true, false)
+		shutdownStack, err := s.Start(t.Context())
+		require.NoError(t, err, "the stack must start up")
+
+		t.Cleanup(func() {
+			if err := shutdownStack(context.Background()); err != nil {
+				t.Logf("error shutting down otel: %v", err)
+			}
+		})
+
+		s.SetTestEnvGRPC(t)
+		shutdownOTEL := setupOTELgRPC(t, false, true, false)
+		t.Cleanup(shutdownOTEL)
+
+		{ // send data
+			record := log.Record{}
+			record.SetTimestamp(time.Now())
+			record.SetBody(log.StringValue("test message"))
+			record.SetSeverity(log.SeverityError)
+			record.SetSeverityText("ERROR")
+			otelLogGlobal.GetLoggerProvider().
+				Logger(serviceName).
+				Emit(t.Context(), record)
+		}
+
+		events, err := s.Seq.GetEvents(1, 30)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		require.Len(t, events[0].MessageTemplateTokens, 1)
+		assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
+	})
+
+	t.Run("traces only", func(t *testing.T) {
+		s := New(false, false, true)
+		shutdownStack, err := s.Start(t.Context())
+		require.NoError(t, err, "the stack must start up")
+
+		t.Cleanup(func() {
+			if err := shutdownStack(context.Background()); err != nil {
+				t.Logf("error shutting down otel: %v", err)
+			}
+		})
+
+		s.SetTestEnvGRPC(t)
+		shutdownOTEL := setupOTELgRPC(t, false, false, true)
+		t.Cleanup(shutdownOTEL)
+
+		{ // send data
+			tracer := otel.Tracer(serviceName)
+			ctx, span := tracer.Start(t.Context(), "test.segment")
+			trace.SpanFromContext(ctx).SetAttributes(attribute.String("test.key", "test_value"))
+			time.Sleep(time.Millisecond * 100)
+			span.End()
+		}
+
+		traces, err := s.Jaeger.GetTraces(1, 30, serviceName)
+		require.NoError(t, err, "must be able to get traces")
+		require.Len(t, traces, 1)
+		require.Len(t, traces[0].Spans, 1)
+		assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
+	})
 }
