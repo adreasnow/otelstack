@@ -31,6 +31,7 @@ type Stack struct {
 }
 
 // New creates a new Stack and populates it with child container structs.
+// Setting the services toggles will disables or enable the respective receever containers.
 func New(metrics bool, logs bool, traces bool) *Stack {
 	return &Stack{
 		Collector:  collector.Collector{},
@@ -132,7 +133,7 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	shutdownFunc := func(ctx context.Context) error {
 		var err error
 		for _, f := range shutdownFuncs {
-			errors.Join(err, f(ctx))
+			err = errors.Join(err, f(ctx))
 		}
 		return err
 	}
