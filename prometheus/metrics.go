@@ -99,8 +99,6 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 				break
 			}
 		}
-
-		time.Sleep(time.Second * 2)
 	}
 
 	if len(metrics.Values) < expectedDataPoints {

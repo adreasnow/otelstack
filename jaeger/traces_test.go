@@ -3,7 +3,6 @@ package jaeger
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ func TestGetTraces(t *testing.T) {
 	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
 	t.Cleanup(func() {
-		if err := shutdownFunc(t.Context()); err != nil {
+		if err := shutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})
@@ -75,8 +74,6 @@ func TestGetTraces(t *testing.T) {
 			}()
 		}()
 	}
-
-	time.Sleep(time.Second*2)
 
 	traces, endpoint, err := j.GetTraces(1, 30, serviceName)
 	require.NoError(t, err, "must be able to get traces")

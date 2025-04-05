@@ -2,7 +2,6 @@ package otelstack
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -272,8 +271,6 @@ func TestStart(t *testing.T) {
 					Emit(t.Context(), record)
 			}
 
-			time.Sleep(time.Second * 2)
-
 			events, _, err := s.Seq.GetEvents(1, 30)
 			require.NoError(t, err)
 			require.Len(t, events, 1)
@@ -296,8 +293,6 @@ func TestNew(t *testing.T) {
 				t.Logf("error shutting down otel: %v", err)
 			}
 		})
-
-		time.Sleep(time.Second * 3)
 
 		resp, err := http.Get("http://localhost:" + s.Seq.Ports[80].Port())
 		require.NoError(t, err, "must be able to call seq")
@@ -333,8 +328,6 @@ func TestNew(t *testing.T) {
 		t.Cleanup(shutdownOTEL)
 
 		startGoroutineMeter(t)
-
-		time.Sleep(time.Second * 2)
 
 		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
@@ -373,8 +366,6 @@ func TestNew(t *testing.T) {
 				Emit(t.Context(), record)
 		}
 
-		time.Sleep(time.Second * 2)
-
 		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
 		require.Len(t, events, 1)
@@ -404,11 +395,7 @@ func TestNew(t *testing.T) {
 			span.End()
 		}
 
-		time.Sleep(time.Second * 2)
-
-		traces, endpoint, err := s.Jaeger.GetTraces(1, 30, serviceName)
-		fmt.Println(endpoint)
-		time.Sleep(time.Second * 10)
+		traces, _, err := s.Jaeger.GetTraces(1, 30, serviceName)
 
 		require.NoError(t, err, "must be able to get traces")
 		require.Len(t, traces, 1)

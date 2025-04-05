@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -105,8 +104,6 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 		if len(u.Traces) == expectedTraces {
 			break
 		}
-
-		time.Sleep(time.Second * 2)
 	}
 
 	if len(traces) < expectedTraces {

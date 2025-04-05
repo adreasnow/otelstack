@@ -1,10 +1,10 @@
 package jaeger
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,12 +16,10 @@ func TestJaegerStart(t *testing.T) {
 	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
 	t.Cleanup(func() {
-		if err := shutdownFunc(t.Context()); err != nil {
+		if err := shutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})
-
-	time.Sleep(time.Second * 2)
 
 	endpoint := fmt.Sprintf("http://localhost:%d", j.Ports[16686].Int())
 	t.Logf("using endpoint: %s", endpoint)

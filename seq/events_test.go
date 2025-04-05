@@ -28,7 +28,7 @@ func TestGetEvents(t *testing.T) {
 	seqShutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "seq must be able to start")
 	t.Cleanup(func() {
-		if err := seqShutdownFunc(t.Context()); err != nil {
+		if err := seqShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down seq: %v", err)
 		}
 	})
@@ -37,7 +37,7 @@ func TestGetEvents(t *testing.T) {
 	collectorShutdownFunc, err := c.Start(t.Context(), "jaeger", s.Name)
 	require.NoError(t, err, "seq must be able to start")
 	t.Cleanup(func() {
-		if err := collectorShutdownFunc(t.Context()); err != nil {
+		if err := collectorShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down seq: %v", err)
 		}
 	})
@@ -96,8 +96,6 @@ func TestGetEvents(t *testing.T) {
 			otelLogGlobal.GetLoggerProvider().Logger("").Emit(ctx, record)
 		}()
 	}
-
-	time.Sleep(time.Second * 2)
 
 	events, endpoint, err := s.GetEvents(1, 30)
 

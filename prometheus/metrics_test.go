@@ -27,7 +27,7 @@ func TestGetMetrics(t *testing.T) {
 	network, err := network.New(t.Context())
 	require.NoError(t, err, "must be able to create network")
 	t.Cleanup(func() {
-		if err := network.Remove(t.Context()); err != nil {
+		if err := network.Remove(context.Background()); err != nil {
 			t.Logf("could not shut down network: %v", err)
 		}
 	})
@@ -38,7 +38,7 @@ func TestGetMetrics(t *testing.T) {
 	collectorShutdownFunc, err := c.Start(t.Context(), "jaeger", "seq")
 	require.NoError(t, err, "collector must be able to start")
 	t.Cleanup(func() {
-		if err := collectorShutdownFunc(t.Context()); err != nil {
+		if err := collectorShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down collector: %v", err)
 		}
 	})
@@ -49,7 +49,7 @@ func TestGetMetrics(t *testing.T) {
 	prometheusShutdownFunc, err := p.Start(t.Context(), c.Name)
 	require.NoError(t, err, "prometheus must be able to start")
 	t.Cleanup(func() {
-		if err := prometheusShutdownFunc(t.Context()); err != nil {
+		if err := prometheusShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down prometheus: %v", err)
 		}
 	})
@@ -87,9 +87,6 @@ func TestGetMetrics(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err, "must be able to set up the goroutines meter")
-
-	time.Sleep(time.Second * 2)
-
 	m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 	require.NoError(t, err, "must be able to get metrics")
 
