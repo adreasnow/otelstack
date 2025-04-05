@@ -10,7 +10,7 @@
     "**.mod",
     "**.sum"
   ],
-  "language": "en",
+  "language": "en-GB",
   "version": "0.2",
   "words": [
     "Logf",
@@ -28,7 +28,6 @@
     "gomod",
     "gotestsum",
     "hostnames",
-    "initialise",
     "jaegertracing",
     "junitfile",
     "ncruces",
@@ -56,6 +55,8 @@
     "otlpmetricgrpc",
     "otlpmetrichttp",
     "sdkmetric",
-    "Wrapf"
+    "Wrapf",
+    "resp",
+    "Cleanup"
   ]
 }

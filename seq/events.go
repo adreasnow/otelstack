@@ -27,10 +27,10 @@ type Events []struct {
 // GetEvents takes returns the last n logging events that were received by Seq.
 // There is a retry mechanism implemented; `GetEvents` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Jaeger returns `expectedEvents` number of events.
-func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, err error) {
+func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, endpoint string, err error) {
 	var resp *http.Response
 	var body []byte
-	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), expectedEvents)
+	endpoint = fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), expectedEvents)
 
 	for range maxRetries {
 		resp, err = http.Get(endpoint)

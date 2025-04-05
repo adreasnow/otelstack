@@ -221,7 +221,7 @@ func TestStart(t *testing.T) {
 			t.Run("test traces", func(t *testing.T) {
 				t.Parallel()
 
-				traces, err := s.Jaeger.GetTraces(1, 30, serviceName)
+				traces, _, err := s.Jaeger.GetTraces(1, 30, serviceName)
 				require.NoError(t, err, "must be able to get traces")
 				require.Len(t, traces, 1)
 				require.Len(t, traces[0].Spans, 1)
@@ -280,7 +280,7 @@ func TestNew(t *testing.T) {
 
 		startGoroutineMeter(t)
 
-		metrics, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
 
 		assert.GreaterOrEqual(t, len(metrics.Values), 3)
@@ -316,7 +316,7 @@ func TestNew(t *testing.T) {
 				Emit(t.Context(), record)
 		}
 
-		events, err := s.Seq.GetEvents(1, 30)
+		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
 		require.Len(t, events, 1)
 		require.Len(t, events[0].MessageTemplateTokens, 1)
@@ -346,7 +346,7 @@ func TestNew(t *testing.T) {
 			span.End()
 		}
 
-		traces, err := s.Jaeger.GetTraces(1, 30, serviceName)
+		traces, _, err := s.Jaeger.GetTraces(1, 30, serviceName)
 		require.NoError(t, err, "must be able to get traces")
 		require.Len(t, traces, 1)
 		require.Len(t, traces[0].Spans, 1)

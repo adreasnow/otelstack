@@ -88,9 +88,10 @@ func TestGetMetrics(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 
-	m, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+	m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 	require.NoError(t, err, "must be able to get metrics")
 
+	assert.NotEmpty(t, endpoint, "must return an endpoint")
 	assert.GreaterOrEqual(t, len(m.Values), 3)
 	num, err := strconv.Atoi(m.Values[0][1].(string))
 	require.NoError(t, err, "must be able to parse the metric value")

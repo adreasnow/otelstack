@@ -46,7 +46,7 @@ type request struct {
 // GetMetrics takes in a service names and returns the last n `metricName` events corresponding to that `service` over that `since`.
 // There is a retry mechanism implemented; `GetMetrics` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Prometheus returns `expectedDataPoints` number of metrics points.
-func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricName string, service string, since time.Duration) (metrics Metrics, err error) {
+func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricName string, service string, since time.Duration) (metrics Metrics, endpoint string, err error) {
 	var resp *http.Response
 	var body []byte
 	startTime := time.Now()
@@ -63,10 +63,10 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 		v, queryErr := query.Values(request)
 		if queryErr != nil {
 			err = errors.Wrapf(queryErr, "prometheus: could not marshal values into a url query for request %v", request)
-			return metrics, err
+			return
 		}
 
-		endpoint := fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
+		endpoint = fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
 
 		resp, err = http.Get(endpoint)
 		if err != nil {

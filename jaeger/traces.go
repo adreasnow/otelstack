@@ -14,25 +14,66 @@ import (
 
 type unmarshalStruct struct {
 	Traces Traces `json:"data"`
+	Total  int    `json:"total"`
+	Limit  int    `json:"limit"`
+	Offset int    `json:"offset"`
+	Errors any    `json:"errors"`
 }
 
 // Traces holds the returned traces from Jaeger.
 type Traces []struct {
+	TraceID   string `json:"traceID"`
+	Spans     []Span `json:"spans"`
+	Processes struct {
+		P1 struct {
+			ServiceName string `json:"serviceName"`
+			Tags        []any  `json:"tags"`
+		} `json:"p1"`
+	} `json:"processes"`
+	Warnings any `json:"warnings"`
+}
+
+// Span holds the data for each span in a trace
+type Span struct {
+	TraceID       string      `json:"traceID"`
+	SpanID        string      `json:"spanID"`
+	OperationName string      `json:"operationName"`
+	References    []Reference `json:"references"`
+	StartTime     int64       `json:"startTime"`
+	Duration      int         `json:"duration"`
+	Tags          []KeyValue  `json:"tags"`
+	Logs          []Log       `json:"logs"`
+	ProcessID     string      `json:"processID"`
+	Warnings      any         `json:"warnings"`
+}
+
+// KeyValue holds the key-value store of data within a span
+type KeyValue struct {
+	Key   string `json:"key"`
+	Type  string `json:"type"`
+	Value any    `json:"value"`
+}
+
+// Reference holds the the relationship data between spans
+type Reference struct {
+	RefType string `json:"refType"`
 	TraceID string `json:"traceID"`
-	Spans   []struct {
-		TraceID       string `json:"traceID"`
-		SpanID        string `json:"spanID"`
-		OperationName string `json:"operationName"`
-	} `json:"spans"`
+	SpanID  string `json:"spanID"`
+}
+
+// Log holds the data for a log event
+type Log struct {
+	Timestamp int64      `json:"timestamp"`
+	Fields    []KeyValue `json:"fields"`
 }
 
 // GetTraces takes in a service names and returns the last n traces corresponding to that service.
 // There is a retry mechanism implemented; `GetTraces` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Jaeger returns `expectedTraces` number of traces.
-func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (traces Traces, err error) {
+func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (traces Traces, endpoint string, err error) {
 	var resp *http.Response
 	var body []byte
-	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
+	endpoint = fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
 
 	for range maxRetries {
 		resp, err = http.Get(endpoint)
@@ -61,7 +102,7 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 
 		traces = u.Traces
 
-		if len(traces) == expectedTraces {
+		if u.Total == expectedTraces {
 			break
 		}
 
