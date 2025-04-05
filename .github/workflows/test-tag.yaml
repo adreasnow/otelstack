@@ -44,9 +44,6 @@ jobs:
             go.sum
 
       - name: Test
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: "true"
-          TESTCONTAINERS_CHECKS_DISABLE: "true"
         run: >
           go tool gotestsum
           --jsonfile gotestsum.json
@@ -56,6 +53,7 @@ jobs:
           --
           -coverpkg=./...
           -coverprofile=coverage.out
+          -parallel=1
 
       - name: Convert report into ctrf
         if: ${{ !cancelled() }}
