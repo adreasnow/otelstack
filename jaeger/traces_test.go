@@ -171,8 +171,10 @@ func TestGetTraces(t *testing.T) {
 
 	t.Run("wrong service", func(t *testing.T) {
 		t.Parallel()
-
+		startTime := time.Now()
 		_, _, err := j.GetTraces(1, 30, "bad-service")
 		require.Error(t, err)
+		assert.Greater(t, time.Since(startTime), time.Second*2)
+
 	})
 }

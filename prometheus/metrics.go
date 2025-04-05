@@ -2,14 +2,12 @@
 package prometheus
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
+	"github.com/adreasnow/otelstack/request"
 	"github.com/google/go-querystring/query"
-	"github.com/pkg/errors"
 )
 
 type unmarshalStruct struct {
@@ -36,71 +34,87 @@ type Metrics struct {
 	Values [][]any `json:"values"`
 }
 
-type request struct {
+type requestStruct struct {
 	Query string `url:"query"`
 	Start string `url:"start,omitempty"`
 	End   string `url:"end,omitempty"`
 	Step  string `url:"step,omitempty"`
 }
 
+var errRespCode = fmt.Errorf("the return was not of status 200")
+
 // GetMetrics takes in a service names and returns the last n `metricName` events corresponding to that `service` over that `since`.
 // There is a retry mechanism implemented; `GetMetrics` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Prometheus returns `expectedDataPoints` number of metrics points.
 func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricName string, service string, since time.Duration) (Metrics, string, error) {
-	var metrics Metrics
 	var endpoint string
+	var metrics Metrics
 	startTime := time.Now()
 
-	for range maxRetries {
+	var attempts int
+	for {
+		attempts++
+		if attempts > 1 {
+			time.Sleep(time.Second * 2)
+		}
+
 		sinceStart := time.Since(startTime)
-		request := request{
+		r := requestStruct{
 			Query: fmt.Sprintf("%s{service_name=\"%s\"}", metricName, service),
 			Start: time.Now().Add(-since - sinceStart).Format(time.RFC3339),
 			End:   time.Now().Format(time.RFC3339),
 			Step:  "10s",
 		}
 
-		v, queryErr := query.Values(request)
+		v, queryErr := query.Values(r)
 		if queryErr != nil {
-			return metrics, "", errors.Wrapf(queryErr, "prometheus: could not marshal values into a url query for request %v", request)
+			return metrics, "", fmt.Errorf("prometheus: could not marshal values into a url query for request %v: %w", r, queryErr)
 		}
 
 		endpoint = fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
 
-		resp, err := http.Get(endpoint)
-		if err != nil {
-			return metrics, endpoint, errors.Wrapf(err, "prometheus: could not get metrics from prometheus on endpoint %s", endpoint)
-		}
-
-		if resp.StatusCode != 200 {
-			return metrics, endpoint, fmt.Errorf("prometheus: response from prometheus was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return metrics, endpoint, errors.Wrapf(err, "prometheus: could not read body from prometheus response for endpoint %s", endpoint)
-		}
-
 		var u unmarshalStruct
-		err = json.Unmarshal(body, &u)
-		if err != nil {
-			return metrics, endpoint, errors.Wrapf(err, "prometheus: could not unmarshal response into metrics for body %s", string(body))
+		err := request.Request(endpoint, &u)
+		if err != nil && !errors.Is(err, errRespCode) {
+			return metrics, endpoint, fmt.Errorf("prometheus: request returned a non-retryable error: %w", err)
 		}
 
 		if len(u.Data.Result) > 0 {
 			metrics = u.Data.Result[0]
-
-			if len(metrics.Values) >= expectedDataPoints {
-				break
-			}
 		}
 
-		time.Sleep(time.Second * 2)
-	}
+		if len(metrics.Values) >= expectedDataPoints {
+			return metrics, endpoint, nil
+		}
 
-	if len(metrics.Values) < expectedDataPoints {
-		return metrics, endpoint, fmt.Errorf("prometheus: could not get %d metric points in %d attempts", expectedDataPoints, maxRetries)
+		if attempts >= maxRetries {
+			return metrics, endpoint, fmt.Errorf("prometheus: could not get %d metrics in %d attempts", expectedDataPoints, maxRetries)
+		}
 	}
-
-	return metrics, endpoint, nil
 }
+
+// func request(endpoint string) (Metrics, error) {
+// 	var metrics Metrics
+
+// 	resp, err := http.Get(endpoint)
+// 	if err != nil {
+// 		return metrics, fmt.Errorf("prometheus: could not get traces from prometheus on endpoint %s: %w", endpoint, err)
+// 	}
+
+// 	if resp.StatusCode != 200 {
+// 		return metrics, fmt.Errorf("prometheus: response from prometheus was not 200: got %d on endpoint %s: %w", resp.StatusCode, endpoint, errRespCode)
+// 	}
+
+// 	body, err := io.ReadAll(resp.Body)
+// 	if err != nil {
+// 		return metrics, fmt.Errorf("prometheus: could not read body from prometheus response for endpoint %s: %w", endpoint, err)
+// 	}
+
+// 	var u unmarshalStruct
+// 	err = json.Unmarshal(body, &u)
+// 	if err != nil {
+// 		return metrics, fmt.Errorf("prometheus: could not unmarshal response into metrics for body %s: %w", string(body), err)
+// 	}
+
+// 	return metrics, nil
+// }

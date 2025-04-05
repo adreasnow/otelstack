@@ -107,22 +107,25 @@ func TestGetMetrics(t *testing.T) {
 
 	t.Run("not enough values", func(t *testing.T) {
 		t.Parallel()
+		startTime := time.Now()
 		_, _, err := p.GetMetrics(10, 2, "goroutine_count", serviceName, time.Second*30)
-
 		require.Error(t, err)
+		assert.Greater(t, time.Since(startTime), time.Second*2)
 	})
 
 	t.Run("wrong metric", func(t *testing.T) {
 		t.Parallel()
+		startTime := time.Now()
 		_, _, err := p.GetMetrics(10, 2, "non_existing_metric", serviceName, time.Second*30)
-
 		require.Error(t, err)
+		assert.Greater(t, time.Since(startTime), time.Second*2)
 	})
 
 	t.Run("wrong service", func(t *testing.T) {
 		t.Parallel()
+		startTime := time.Now()
 		_, _, err := p.GetMetrics(10, 2, "goroutine_count", "bad-service", time.Second*30)
-
 		require.Error(t, err)
+		assert.Greater(t, time.Since(startTime), time.Second*2)
 	})
 }

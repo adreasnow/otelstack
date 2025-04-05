@@ -7,7 +7,7 @@ package otelstack
 
 import (
 	"context"
-	stderr "errors"
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
@@ -17,7 +17,6 @@ import (
 	"github.com/adreasnow/otelstack/prometheus"
 	"github.com/adreasnow/otelstack/seq"
 
-	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go/network"
 )
 
@@ -71,15 +70,15 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		// Reverse the slice so that the network is shut down last
 		slices.Reverse(shutdownFuncs)
 		for _, f := range shutdownFuncs {
-			err = stderr.Join(err, f(ctx))
-			err = errors.WithMessage(err, "otelstack: error shutting down container")
+			err = errors.Join(err, f(ctx))
+			err = fmt.Errorf("otelstack: error shutting down container: %w", err)
 		}
 		return
 	}
 
 	network, err := network.New(ctx)
 	if err != nil {
-		return shutdown, errors.WithMessage(err, "otelstack: could not create new network")
+		return shutdown, fmt.Errorf("otelstack: could not create new network: %w", err)
 	}
 	shutdownFuncs = append(shutdownFuncs, network.Remove)
 
@@ -87,9 +86,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		s.Jaeger.Network = network
 		jaegerShutdown, err := s.Jaeger.Start(ctx)
 		if err != nil {
-			err = errors.WithMessage(err, "otelstack: could not start jaeger")
-			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed jaeger start"),
+			err = fmt.Errorf("otelstack: could not start jaeger: %w", err)
+			return emptyFunc, errors.Join(
+				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed jaeger start: %w", shutdown(ctx)),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, jaegerShutdown)
@@ -99,9 +98,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		s.Seq.Network = network
 		seqShutdown, err := s.Seq.Start(ctx)
 		if err != nil {
-			err = errors.WithMessage(err, "otelstack: could not start seq")
-			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed seq start"),
+			err = fmt.Errorf("otelstack: could not start seq: %w", err)
+			return emptyFunc, errors.Join(
+				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed seq start: %w", shutdown(ctx)),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, seqShutdown)
@@ -110,9 +109,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	s.Collector.Network = network
 	collectorShutdown, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
 	if err != nil {
-		err = errors.WithMessage(err, "otelstack: could not start collector")
-		return emptyFunc, stderr.Join(
-			err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed collector start"),
+		err = fmt.Errorf("otelstack: could not start collector: %w", err)
+		return emptyFunc, errors.Join(
+			err, fmt.Errorf("otelstack: error occurred while shutting down services after failed collector start: %w", shutdown(ctx)),
 		)
 	}
 	shutdownFuncs = append(shutdownFuncs, collectorShutdown)
@@ -121,9 +120,9 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		s.Prometheus.Network = network
 		prometheusShutdown, err := s.Prometheus.Start(ctx, s.Collector.Name)
 		if err != nil {
-			err = errors.WithMessage(err, "otelstack: could not start prometheus")
-			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed prometheus start"),
+			err = fmt.Errorf("otelstack: could not start prometheus: %w", err)
+			return emptyFunc, errors.Join(
+				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed prometheus start: %w", shutdown(ctx)),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, prometheusShutdown)

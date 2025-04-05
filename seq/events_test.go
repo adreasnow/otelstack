@@ -25,6 +25,7 @@ func TestGetEvents(t *testing.T) {
 	t.Parallel()
 
 	s := Seq{}
+
 	seqShutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "seq must be able to start")
 	t.Cleanup(func() {
@@ -126,8 +127,9 @@ func TestGetEvents(t *testing.T) {
 
 	t.Run("not enough values", func(t *testing.T) {
 		t.Parallel()
+		startTime := time.Now()
 		_, _, err := s.GetEvents(10, 2)
-
 		require.Error(t, err)
+		assert.Greater(t, time.Since(startTime), time.Second*2)
 	})
 }
