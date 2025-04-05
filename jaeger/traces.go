@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type unmarshalStruct struct {
@@ -35,25 +37,25 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 	for range maxRetries {
 		resp, err = http.Get(endpoint)
 		if err != nil {
-			err = fmt.Errorf("could not get traces from jaeger: %v", err)
+			err = errors.Wrapf(err, "jaeger: could not get traces from jaeger on endpoint %s", endpoint)
 			return
 		}
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("not a 200 response, got %d", resp.StatusCode)
+			err = errors.Wrapf(err, "jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			err = fmt.Errorf("could not get set body from seq response: %v", err)
+			err = errors.Wrapf(err, "jaeger: could not read body from jaeger response for endpoint %s", endpoint)
 			return
 		}
 
 		var u unmarshalStruct
 		err = json.Unmarshal(body, &u)
 		if err != nil {
-			err = fmt.Errorf("could not unmarshal traces: %v", err)
+			err = errors.Wrapf(err, "jaeger: could not unmarshal response into traces for body %s", string(body))
 			return
 		}
 
@@ -67,7 +69,7 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 	}
 
 	if len(traces) < expectedTraces {
-		err = fmt.Errorf("could not get %d traces in %d attempts: %v", expectedTraces, maxRetries, err)
+		err = errors.Wrapf(err, "jaeger: could not get %d traces in %d attempts", expectedTraces, maxRetries)
 	}
 
 	return

@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Events holds the returned logging events from Seq.
@@ -33,24 +35,24 @@ func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, err 
 	for range maxRetries {
 		resp, err = http.Get(endpoint)
 		if err != nil {
-			err = fmt.Errorf("could not get events from seq: %v", err)
+			err = errors.Wrapf(err, "seq: could not get log event from seq on endpoint %s", endpoint)
 			return
 		}
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("not a 200 response: %v", err)
+			err = errors.Wrapf(err, "seq: response from seq was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			err = fmt.Errorf("could not get set body from seq response: %v", err)
+			err = errors.Wrapf(err, "seq: could not read body from seq response for endpoint %s", endpoint)
 			return
 		}
 
 		err = json.Unmarshal(body, &events)
 		if err != nil {
-			err = fmt.Errorf("could not unmarshal events: %v", err)
+			err = errors.Wrapf(err, "seq: could not unmarshal response into events for body %s", string(body))
 			return
 		}
 		if len(events) == expectedEvents {
@@ -61,7 +63,7 @@ func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, err 
 	}
 
 	if len(events) < expectedEvents {
-		err = fmt.Errorf("could not get %d events in %d attempts: %v", expectedEvents, maxRetries, err)
+		err = errors.Wrapf(err, "seq: could not get %d events in %d attempts", expectedEvents, maxRetries)
 	}
 
 	return

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -30,7 +31,7 @@ func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 	if s.Network == nil {
 		s.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, fmt.Errorf("could not create network: %v", err)
+			return emptyFunc, errors.WithMessage(err, "seq: network not provided and could not create a new one")
 		}
 	}
 
@@ -45,19 +46,19 @@ func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, fmt.Errorf("seq could not start: %v", err)
+		return emptyFunc, errors.WithMessage(err, "seq: could not start the testcontainer")
 	}
 
 	s.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, fmt.Errorf("could not get container name: %v", err)
+		return emptyFunc, errors.WithMessage(err, "seq: could not read the name of the container from the testcontainer")
 	}
 	s.Name = s.Name[1:]
 
 	for _, portNum := range []int{80, 5341} {
 		s.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
+			return emptyFunc, errors.Wrapf(err, "seq: could not retrieve port %d from the testcontainer", portNum)
 		}
 	}
 
