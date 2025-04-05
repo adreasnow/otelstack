@@ -53,6 +53,7 @@ jobs:
           --
           -coverpkg=./...
           -coverprofile=coverage.out
+          -parallel=1
 
       - name: Convert report into ctrf
         if: ${{ !cancelled() }}

@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -23,7 +24,7 @@ func TestPrometheusStart(t *testing.T) {
 	shutdownFunc, err := p.Start(t.Context(), "test")
 	require.NoError(t, err, "prometheus must be able to start")
 	t.Cleanup(func() {
-		if err := shutdownFunc(t.Context()); err != nil {
+		if err := shutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down prometheus: %v", err)
 		}
 	})

@@ -7,7 +7,7 @@ package otelstack
 
 import (
 	"context"
-	"errors"
+	stderr "errors"
 	"fmt"
 	"slices"
 	"testing"
@@ -17,6 +17,7 @@ import (
 	"github.com/adreasnow/otelstack/prometheus"
 	"github.com/adreasnow/otelstack/seq"
 
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go/network"
 )
 
@@ -66,84 +67,67 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	shutdownFuncs := []func(context.Context) error{}
 	emptyFunc := func(context.Context) error { return nil }
 
-	shutdown := func() {
-		var err error
-
+	shutdown := func(ctx context.Context) (err error) {
 		// Reverse the slice so that the network is shut down last
 		slices.Reverse(shutdownFuncs)
 		for _, f := range shutdownFuncs {
-			err = errors.Join(err, f(ctx))
+			err = stderr.Join(err, f(ctx))
+			err = errors.WithMessage(err, "otelstack: error shutting down container")
 		}
-		if err != nil {
-			fmt.Printf("error shutting down stack: %v\n", err)
-		}
+		return
 	}
 
 	network, err := network.New(ctx)
 	if err != nil {
-		return emptyFunc, fmt.Errorf("could not create network: %v", err)
+		return shutdown, errors.WithMessage(err, "otelstack: could not create new network")
 	}
 	shutdownFuncs = append(shutdownFuncs, network.Remove)
 
 	if s.traces {
 		s.Jaeger.Network = network
 		jaegerShutdown, err := s.Jaeger.Start(ctx)
-		shutdownFuncs = append(shutdownFuncs, jaegerShutdown)
 		if err != nil {
-			if err := network.Remove(ctx); err != nil {
-				fmt.Printf("could not shut down network: %v", err)
-			}
-			return emptyFunc, fmt.Errorf("could not start jaeger: %v", err)
+			err = errors.WithMessage(err, "otelstack: could not start jaeger")
+			return emptyFunc, stderr.Join(
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed jaeger start"),
+			)
 		}
+		shutdownFuncs = append(shutdownFuncs, jaegerShutdown)
 	}
 
 	if s.logs {
 		s.Seq.Network = network
 		seqShutdown, err := s.Seq.Start(ctx)
-		shutdownFuncs = append(shutdownFuncs, seqShutdown)
 		if err != nil {
-			if err := network.Remove(ctx); err != nil {
-				fmt.Printf("could not shut down network: %v", err)
-			}
-			shutdown()
-			return emptyFunc, fmt.Errorf("could not start seq: %v", err)
+			err = errors.WithMessage(err, "otelstack: could not start seq")
+			return emptyFunc, stderr.Join(
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed seq start"),
+			)
 		}
+		shutdownFuncs = append(shutdownFuncs, seqShutdown)
 	}
 
 	s.Collector.Network = network
 	collectorShutdown, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
-	shutdownFuncs = append(shutdownFuncs, collectorShutdown)
 	if err != nil {
-		if err := network.Remove(ctx); err != nil {
-			fmt.Printf("could not shut down network: %v", err)
-		}
-		shutdown()
-		return emptyFunc, fmt.Errorf("could not start collector: %v", err)
+		err = errors.WithMessage(err, "otelstack: could not start collector")
+		return emptyFunc, stderr.Join(
+			err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed collector start"),
+		)
 	}
+	shutdownFuncs = append(shutdownFuncs, collectorShutdown)
 
 	if s.metrics {
 		s.Prometheus.Network = network
 		prometheusShutdown, err := s.Prometheus.Start(ctx, s.Collector.Name)
-		shutdownFuncs = append(shutdownFuncs, prometheusShutdown)
 		if err != nil {
-			if err := network.Remove(ctx); err != nil {
-				fmt.Printf("could not shut down network: %v", err)
-			}
-			shutdown()
-			return emptyFunc, fmt.Errorf("could not start prometheus: %v", err)
+			err = errors.WithMessage(err, "otelstack: could not start prometheus")
+			return emptyFunc, stderr.Join(
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed prometheus start"),
+			)
 		}
+		shutdownFuncs = append(shutdownFuncs, prometheusShutdown)
 	}
 
-	shutdownFunc := func(ctx context.Context) error {
-		var err error
-
-		// Reverse the slice so that the network is shut down last
-		slices.Reverse(shutdownFuncs)
-		for _, f := range shutdownFuncs {
-			err = errors.Join(err, f(ctx))
-		}
-		return err
-	}
-
-	return shutdownFunc, nil
+	return shutdown, nil
 }

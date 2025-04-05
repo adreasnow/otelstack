@@ -1,6 +1,7 @@
 package jaeger
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -15,7 +16,7 @@ func TestJaegerStart(t *testing.T) {
 	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
 	t.Cleanup(func() {
-		if err := shutdownFunc(t.Context()); err != nil {
+		if err := shutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})

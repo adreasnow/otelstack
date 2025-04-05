@@ -6,9 +6,11 @@
     "**/.pnpm-lock.json",
     ".vscode",
     "package-lock.json",
-    "megalinter-reports"
+    "megalinter-reports",
+    "**.mod",
+    "**.sum"
   ],
-  "language": "en",
+  "language": "en-GB",
   "version": "0.2",
   "words": [
     "Logf",
@@ -26,7 +28,6 @@
     "gomod",
     "gotestsum",
     "hostnames",
-    "initialise",
     "jaegertracing",
     "junitfile",
     "ncruces",
@@ -53,6 +54,11 @@
     "otlpmetric",
     "otlpmetricgrpc",
     "otlpmetrichttp",
-    "sdkmetric"
+    "sdkmetric",
+    "Wrapf",
+    "resp",
+    "Cleanup",
+    "LINTERS",
+    "linters"
   ]
 }

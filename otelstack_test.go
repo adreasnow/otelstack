@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
@@ -44,14 +45,22 @@ func startGoroutineMeter(t *testing.T) {
 	require.NoError(t, err, "must be able to start goroutine meter")
 }
 
-func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool) func() {
+func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool, port nat.Port) func() {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
 	shutdownFuncs := []func(){}
 
 	if metrics {
-		metricExporter, err := otlpmetrichttp.New(t.Context())
+		opts := []otlpmetrichttp.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlpmetrichttp.WithEndpoint("localhost:"+port.Port()),
+				otlpmetrichttp.WithInsecure(),
+			)
+		}
+
+		metricExporter, err := otlpmetrichttp.New(t.Context(), opts...)
 		require.NoError(t, err, "must be able to set up exporter")
 		otel.SetMeterProvider(
 			sdkmetric.NewMeterProvider(
@@ -70,7 +79,15 @@ func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	}
 
 	if logs {
-		logExporter, err := otlploghttp.New(t.Context())
+		opts := []otlploghttp.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlploghttp.WithEndpoint("localhost:"+port.Port()),
+				otlploghttp.WithInsecure(),
+			)
+		}
+
+		logExporter, err := otlploghttp.New(t.Context(), opts...)
 		require.NoError(t, err, "log exporter must be started")
 		otelLogGlobal.SetLoggerProvider(
 			sdklog.NewLoggerProvider(
@@ -89,7 +106,15 @@ func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	}
 
 	if traces {
-		traceExporter, err := otlptracehttp.New(t.Context())
+		opts := []otlptracehttp.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlptracehttp.WithEndpoint("localhost:"+port.Port()),
+				otlptracehttp.WithInsecure(),
+			)
+		}
+
+		traceExporter, err := otlptracehttp.New(t.Context(), opts...)
 		require.NoError(t, err, "trace exporter must be started")
 
 		otel.SetTracerProvider(
@@ -113,14 +138,22 @@ func setupOTELHTTP(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	}
 }
 
-func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool) func() {
+func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool, port nat.Port) func() {
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
 	require.NoError(t, err, "resources must be created")
 
 	shutdownFuncs := []func(){}
 
 	if metrics {
-		metricExporter, err := otlpmetricgrpc.New(t.Context())
+		opts := []otlpmetricgrpc.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlpmetricgrpc.WithEndpoint("localhost:"+port.Port()),
+				otlpmetricgrpc.WithInsecure(),
+			)
+		}
+
+		metricExporter, err := otlpmetricgrpc.New(t.Context(), opts...)
 		require.NoError(t, err, "must be able to set up exporter")
 		otel.SetMeterProvider(
 			sdkmetric.NewMeterProvider(
@@ -139,7 +172,15 @@ func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	}
 
 	if logs {
-		logExporter, err := otlploggrpc.New(t.Context())
+		opts := []otlploggrpc.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlploggrpc.WithEndpoint("localhost:"+port.Port()),
+				otlploggrpc.WithInsecure(),
+			)
+		}
+
+		logExporter, err := otlploggrpc.New(t.Context(), opts...)
 		require.NoError(t, err, "log exporter must be started")
 		otelLogGlobal.SetLoggerProvider(
 			sdklog.NewLoggerProvider(
@@ -158,7 +199,15 @@ func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool) func() {
 	}
 
 	if traces {
-		traceExporter, err := otlptracegrpc.New(t.Context())
+		opts := []otlptracegrpc.Option{}
+		if port.Int() != 0 {
+			opts = append(opts,
+				otlptracegrpc.WithEndpoint("localhost:"+port.Port()),
+				otlptracegrpc.WithInsecure(),
+			)
+		}
+
+		traceExporter, err := otlptracegrpc.New(t.Context(), opts...)
 		require.NoError(t, err, "trace exporter must be started")
 
 		otel.SetTracerProvider(
@@ -189,7 +238,7 @@ func TestStart(t *testing.T) {
 	for _, tt := range testData {
 		t.Run(tt.name, func(t *testing.T) {
 			s := Stack{
-				traces: true,
+				logs: true,
 			}
 			shutdownFunc, err := s.Start(t.Context())
 			require.NoError(t, err, "stack must be able to start")
@@ -202,38 +251,39 @@ func TestStart(t *testing.T) {
 			var shutdown func()
 			switch tt.name {
 			case "gRPC":
-				s.SetTestEnvGRPC(t)
-				shutdown = setupOTELgRPC(t, false, false, true)
+				shutdown = setupOTELgRPC(t, false, true, false, s.Collector.Ports[4317])
 			case "HTTP":
-				s.SetTestEnvHTTP(t)
-				shutdown = setupOTELHTTP(t, false, false, true)
+				shutdown = setupOTELHTTP(t, false, true, false, s.Collector.Ports[4318])
 			}
 
 			t.Cleanup(shutdown)
 
 			{ // send data
-				tracer := otel.Tracer(serviceName)
-				ctx, span := tracer.Start(t.Context(), "test.segment")
-				trace.SpanFromContext(ctx).SetAttributes(attribute.String("test.key", "test_value"))
-				span.End()
+				record := log.Record{}
+				record.SetTimestamp(time.Now())
+				record.SetBody(log.StringValue("test message"))
+				record.SetSeverity(log.SeverityError)
+				record.SetSeverityText("ERROR")
+				otelLogGlobal.GetLoggerProvider().
+					Logger(serviceName).
+					Emit(t.Context(), record)
 			}
 
-			t.Run("test traces", func(t *testing.T) {
-				t.Parallel()
+			time.Sleep(time.Second * 3)
 
-				traces, err := s.Jaeger.GetTraces(1, 30, serviceName)
-				require.NoError(t, err, "must be able to get traces")
-				require.Len(t, traces, 1)
-				require.Len(t, traces[0].Spans, 1)
-				assert.Equal(t, "test.segment", traces[0].Spans[0].OperationName)
-			})
-
+			events, _, err := s.Seq.GetEvents(1, 30)
+			require.NoError(t, err)
+			require.Len(t, events, 1)
+			require.Len(t, events[0].Messages, 1)
+			assert.Equal(t, "test message", events[0].Messages[0].Text)
 		})
 	}
 }
 
 func TestNew(t *testing.T) {
 	t.Run("all services", func(t *testing.T) {
+		t.Parallel()
+
 		s := New(true, true, true)
 		shutdownStack, err := s.Start(t.Context())
 		require.NoError(t, err, "the stack must start up")
@@ -243,8 +293,6 @@ func TestNew(t *testing.T) {
 				t.Logf("error shutting down otel: %v", err)
 			}
 		})
-
-		time.Sleep(time.Second * 3)
 
 		resp, err := http.Get("http://localhost:" + s.Seq.Ports[80].Port())
 		require.NoError(t, err, "must be able to call seq")
@@ -274,16 +322,18 @@ func TestNew(t *testing.T) {
 			}
 		})
 
-		s.SetTestEnvGRPC(t)
-		shutdownOTEL := setupOTELgRPC(t, true, false, false)
+		shutdownOTEL := setupOTELgRPC(t, true, false, false, s.Collector.Ports[4317])
 		t.Cleanup(shutdownOTEL)
 
 		startGoroutineMeter(t)
 
-		metrics, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+		time.Sleep(time.Second * 3)
+
+		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
 
-		assert.GreaterOrEqual(t, len(metrics.Values), 3)
+		require.GreaterOrEqual(t, len(metrics.Values), 3)
+		require.Len(t, metrics.Values[0], 2)
 		num, err := strconv.Atoi(metrics.Values[0][1].(string))
 		require.NoError(t, err, "must be able to parse the metric value")
 
@@ -301,8 +351,7 @@ func TestNew(t *testing.T) {
 			}
 		})
 
-		s.SetTestEnvGRPC(t)
-		shutdownOTEL := setupOTELgRPC(t, false, true, false)
+		shutdownOTEL := setupOTELgRPC(t, false, true, false, s.Collector.Ports[4317])
 		t.Cleanup(shutdownOTEL)
 
 		{ // send data
@@ -316,11 +365,13 @@ func TestNew(t *testing.T) {
 				Emit(t.Context(), record)
 		}
 
-		events, err := s.Seq.GetEvents(1, 30)
+		time.Sleep(time.Second * 3)
+
+		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
 		require.Len(t, events, 1)
-		require.Len(t, events[0].MessageTemplateTokens, 1)
-		assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
+		require.Len(t, events[0].Messages, 1)
+		assert.Equal(t, "test message", events[0].Messages[0].Text)
 	})
 
 	t.Run("traces only", func(t *testing.T) {
@@ -334,19 +385,21 @@ func TestNew(t *testing.T) {
 			}
 		})
 
-		s.SetTestEnvGRPC(t)
-		shutdownOTEL := setupOTELgRPC(t, false, false, true)
+		shutdownOTEL := setupOTELgRPC(t, false, false, true, s.Collector.Ports[4317])
 		t.Cleanup(shutdownOTEL)
 
 		{ // send data
-			tracer := otel.Tracer(serviceName)
+			tracer := otel.Tracer("")
 			ctx, span := tracer.Start(t.Context(), "test.segment")
 			trace.SpanFromContext(ctx).SetAttributes(attribute.String("test.key", "test_value"))
 			time.Sleep(time.Millisecond * 100)
 			span.End()
 		}
 
-		traces, err := s.Jaeger.GetTraces(1, 30, serviceName)
+		time.Sleep(time.Second * 3)
+
+		traces, _, err := s.Jaeger.GetTraces(1, 30, serviceName)
+
 		require.NoError(t, err, "must be able to get traces")
 		require.Len(t, traces, 1)
 		require.Len(t, traces[0].Spans, 1)

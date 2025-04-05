@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -24,10 +25,11 @@ func TestCollectorStart(t *testing.T) {
 	shutdownFunc, err := c.Start(t.Context(), "999", "888")
 	require.NoError(t, err, "collector must be able to start")
 	t.Cleanup(func() {
-		if err := shutdownFunc(t.Context()); err != nil {
+		if err := shutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down collector: %v", err)
 		}
 	})
+
 	endpoint := fmt.Sprintf("http://localhost:%d/health/status", c.Ports[13133].Int())
 
 	resp, err := http.Get(endpoint)

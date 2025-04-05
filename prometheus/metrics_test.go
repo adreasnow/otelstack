@@ -2,7 +2,6 @@ package prometheus
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"strconv"
 	"testing"
@@ -23,10 +22,12 @@ import (
 var serviceName = "test service"
 
 func TestGetMetrics(t *testing.T) {
+	t.Parallel()
+
 	network, err := network.New(t.Context())
 	require.NoError(t, err, "must be able to create network")
 	t.Cleanup(func() {
-		if err := network.Remove(t.Context()); err != nil {
+		if err := network.Remove(context.Background()); err != nil {
 			t.Logf("could not shut down network: %v", err)
 		}
 	})
@@ -37,7 +38,7 @@ func TestGetMetrics(t *testing.T) {
 	collectorShutdownFunc, err := c.Start(t.Context(), "jaeger", "seq")
 	require.NoError(t, err, "collector must be able to start")
 	t.Cleanup(func() {
-		if err := collectorShutdownFunc(t.Context()); err != nil {
+		if err := collectorShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down collector: %v", err)
 		}
 	})
@@ -48,14 +49,15 @@ func TestGetMetrics(t *testing.T) {
 	prometheusShutdownFunc, err := p.Start(t.Context(), c.Name)
 	require.NoError(t, err, "prometheus must be able to start")
 	t.Cleanup(func() {
-		if err := prometheusShutdownFunc(t.Context()); err != nil {
+		if err := prometheusShutdownFunc(context.Background()); err != nil {
 			t.Logf("error shutting down prometheus: %v", err)
 		}
 	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", c.Ports[4317].Int()))
-
-	exporter, err := otlpmetricgrpc.New(t.Context())
+	exporter, err := otlpmetricgrpc.New(t.Context(),
+		otlpmetricgrpc.WithEndpoint("localhost:"+c.Ports[4317].Port()),
+		otlpmetricgrpc.WithInsecure(),
+	)
 	require.NoError(t, err, "must be able to set up exporter")
 
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
@@ -86,14 +88,41 @@ func TestGetMetrics(t *testing.T) {
 	)
 	require.NoError(t, err, "must be able to set up the goroutines meter")
 
-	time.Sleep(time.Second * 10)
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
 
-	m, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
-	require.NoError(t, err, "must be able to get metrics")
+		time.Sleep(time.Second * 3)
 
-	assert.GreaterOrEqual(t, len(m.Values), 3)
-	num, err := strconv.Atoi(m.Values[0][1].(string))
-	require.NoError(t, err, "must be able to parse the metric value")
+		m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+		require.NoError(t, err, "must be able to get metrics")
 
-	assert.Greater(t, num, 2)
+		assert.NotEmpty(t, endpoint, "must return an endpoint")
+		require.GreaterOrEqual(t, len(m.Values), 3)
+		require.Len(t, m.Values[0], 2)
+		num, err := strconv.Atoi(m.Values[0][1].(string))
+		require.NoError(t, err, "must be able to parse the metric value")
+
+		assert.Greater(t, num, 2)
+	})
+
+	t.Run("not enough values", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "goroutine_count", serviceName, time.Second*30)
+
+		require.Error(t, err)
+	})
+
+	t.Run("wrong metric", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "non_existing_metric", serviceName, time.Second*30)
+
+		require.Error(t, err)
+	})
+
+	t.Run("wrong service", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "goroutine_count", "bad-service", time.Second*30)
+
+		require.Error(t, err)
+	})
 }
