@@ -89,7 +89,7 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		if err != nil {
 			err = errors.WithMessage(err, "otelstack: could not start jaeger")
 			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error ocurred while shutting down services after failed jaeger start"),
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed jaeger start"),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, jaegerShutdown)
@@ -101,7 +101,7 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		if err != nil {
 			err = errors.WithMessage(err, "otelstack: could not start seq")
 			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error ocurred while shutting down services after failed seq start"),
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed seq start"),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, seqShutdown)
@@ -112,7 +112,7 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	if err != nil {
 		err = errors.WithMessage(err, "otelstack: could not start collector")
 		return emptyFunc, stderr.Join(
-			err, errors.WithMessage(shutdown(ctx), "otelstack: error ocurred while shutting down services after failed collector start"),
+			err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed collector start"),
 		)
 	}
 	shutdownFuncs = append(shutdownFuncs, collectorShutdown)
@@ -123,7 +123,7 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		if err != nil {
 			err = errors.WithMessage(err, "otelstack: could not start prometheus")
 			return emptyFunc, stderr.Join(
-				err, errors.WithMessage(shutdown(ctx), "otelstack: error ocurred while shutting down services after failed prometheus start"),
+				err, errors.WithMessage(shutdown(ctx), "otelstack: error occurred while shutting down services after failed prometheus start"),
 			)
 		}
 		shutdownFuncs = append(shutdownFuncs, prometheusShutdown)

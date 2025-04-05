@@ -6,7 +6,9 @@
     "**/.pnpm-lock.json",
     ".vscode",
     "package-lock.json",
-    "megalinter-reports"
+    "megalinter-reports",
+    "**.mod",
+    "**.sum"
   ],
   "language": "en",
   "version": "0.2",
@@ -53,6 +55,7 @@
     "otlpmetric",
     "otlpmetricgrpc",
     "otlpmetrichttp",
-    "sdkmetric"
+    "sdkmetric",
+    "Wrapf"
   ]
 }

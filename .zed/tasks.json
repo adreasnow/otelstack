@@ -4,6 +4,10 @@
     "command": "go tool golangci-lint run"
   },
   {
+    "label": "Check Spelling",
+    "command": "cspell lint -c .linters/cspell.json --no-relative --show-context ."
+  },
+  {
     "label": "Lint w/ Revive",
     "command": "go tool revive -set_exit_status ./... "
   },
