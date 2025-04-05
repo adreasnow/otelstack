@@ -332,7 +332,8 @@ func TestNew(t *testing.T) {
 		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
 
-		assert.GreaterOrEqual(t, len(metrics.Values), 3)
+		require.GreaterOrEqual(t, len(metrics.Values), 3)
+		require.Len(t, metrics.Values[0], 2)
 		num, err := strconv.Atoi(metrics.Values[0][1].(string))
 		require.NoError(t, err, "must be able to parse the metric value")
 

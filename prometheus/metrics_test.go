@@ -91,7 +91,8 @@ func TestGetMetrics(t *testing.T) {
 	require.NoError(t, err, "must be able to get metrics")
 
 	assert.NotEmpty(t, endpoint, "must return an endpoint")
-	assert.GreaterOrEqual(t, len(m.Values), 3)
+	require.GreaterOrEqual(t, len(m.Values), 3)
+	require.Len(t, m.Values[0], 2)
 	num, err := strconv.Atoi(m.Values[0][1].(string))
 	require.NoError(t, err, "must be able to parse the metric value")
 
