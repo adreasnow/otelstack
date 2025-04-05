@@ -21,7 +21,7 @@ func TestSeqStart(t *testing.T) {
 		}
 	})
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 
 	endpoint := fmt.Sprintf("http://localhost:%d", s.Ports[80].Int())
 

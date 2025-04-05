@@ -44,7 +44,7 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 			Image:        "prom/prometheus:v3.2.1",
 			ExposedPorts: []string{"9090/tcp"},
 			Networks:     []string{p.Network.Name},
-			WaitingFor:   wait.ForListeningPort("9090/tcp"),
+			WaitingFor:   wait.ForLog("Server is ready to receive web requests."),
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/prometheus/prometheus.yml",
 				Reader:            strings.NewReader(p.config),

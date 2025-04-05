@@ -3,6 +3,7 @@ package jaeger
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -74,6 +75,8 @@ func TestGetTraces(t *testing.T) {
 			}()
 		}()
 	}
+
+	time.Sleep(time.Second*2)
 
 	traces, endpoint, err := j.GetTraces(1, 30, serviceName)
 	require.NoError(t, err, "must be able to get traces")

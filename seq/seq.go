@@ -40,7 +40,7 @@ func (s *Seq) Start(ctx context.Context) (func(context.Context) error, error) {
 			Image:        "datalust/seq:2024.3",
 			ExposedPorts: []string{"80/tcp", "5341/tcp"},
 			Networks:     []string{s.Network.Name},
-			WaitingFor:   wait.ForListeningPort("80/tcp"),
+			WaitingFor:   wait.ForLog("Seq listening on"),
 			Env:          map[string]string{"ACCEPT_EULA": "Y"},
 		},
 		Started: true,

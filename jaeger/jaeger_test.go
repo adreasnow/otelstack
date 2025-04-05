@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,8 @@ func TestJaegerStart(t *testing.T) {
 			t.Logf("error shutting down jaeger: %v", err)
 		}
 	})
+
+	time.Sleep(time.Second * 2)
 
 	endpoint := fmt.Sprintf("http://localhost:%d", j.Ports[16686].Int())
 	t.Logf("using endpoint: %s", endpoint)

@@ -41,7 +41,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 			Image:        "jaegertracing/jaeger:latest",
 			ExposedPorts: []string{"16686/tcp", "4318/tcp"},
 			Networks:     []string{j.Network.Name},
-			WaitingFor:   wait.ForListeningPort("16686/tcp"),
+			WaitingFor:   wait.ForLog("Everything is ready."),
 			Cmd:          []string{"--config", "/etc/jaeger/config.yaml"},
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/jaeger/config.yaml",

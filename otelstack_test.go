@@ -272,6 +272,8 @@ func TestStart(t *testing.T) {
 					Emit(t.Context(), record)
 			}
 
+			time.Sleep(time.Second * 2)
+
 			events, _, err := s.Seq.GetEvents(1, 30)
 			require.NoError(t, err)
 			require.Len(t, events, 1)
@@ -332,6 +334,8 @@ func TestNew(t *testing.T) {
 
 		startGoroutineMeter(t)
 
+		time.Sleep(time.Second * 2)
+
 		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
 
@@ -369,6 +373,8 @@ func TestNew(t *testing.T) {
 				Emit(t.Context(), record)
 		}
 
+		time.Sleep(time.Second * 2)
+
 		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
 		require.Len(t, events, 1)
@@ -397,6 +403,8 @@ func TestNew(t *testing.T) {
 			time.Sleep(time.Millisecond * 100)
 			span.End()
 		}
+
+		time.Sleep(time.Second * 2)
 
 		traces, endpoint, err := s.Jaeger.GetTraces(1, 30, serviceName)
 		fmt.Println(endpoint)

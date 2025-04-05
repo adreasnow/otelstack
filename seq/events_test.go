@@ -97,6 +97,8 @@ func TestGetEvents(t *testing.T) {
 		}()
 	}
 
+	time.Sleep(time.Second * 2)
+
 	events, endpoint, err := s.GetEvents(1, 30)
 
 	require.NoError(t, err, "must be able to get events")

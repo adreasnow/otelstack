@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,8 @@ func TestCollectorStart(t *testing.T) {
 			t.Logf("error shutting down collector: %v", err)
 		}
 	})
+	time.Sleep(time.Second * 2)
+
 	endpoint := fmt.Sprintf("http://localhost:%d/health/status", c.Ports[13133].Int())
 
 	resp, err := http.Get(endpoint)
