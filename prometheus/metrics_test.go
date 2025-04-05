@@ -2,7 +2,6 @@ package prometheus
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"strconv"
 	"testing"
@@ -23,6 +22,8 @@ import (
 var serviceName = "test service"
 
 func TestGetMetrics(t *testing.T) {
+	t.Parallel()
+
 	network, err := network.New(t.Context())
 	require.NoError(t, err, "must be able to create network")
 	t.Cleanup(func() {
@@ -53,9 +54,10 @@ func TestGetMetrics(t *testing.T) {
 		}
 	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", c.Ports[4317].Int()))
-
-	exporter, err := otlpmetricgrpc.New(t.Context())
+	exporter, err := otlpmetricgrpc.New(t.Context(),
+		otlpmetricgrpc.WithEndpoint("localhost:"+c.Ports[4317].Port()),
+		otlpmetricgrpc.WithInsecure(),
+	)
 	require.NoError(t, err, "must be able to set up exporter")
 
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))

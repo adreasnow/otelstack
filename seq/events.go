@@ -64,7 +64,7 @@ func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, endp
 		}
 
 		if resp.StatusCode != 200 {
-			err = errors.Wrapf(err, "seq: response from seq was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
+			err = fmt.Errorf("seq: response from seq was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 

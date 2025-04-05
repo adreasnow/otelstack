@@ -83,7 +83,7 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 		}
 
 		if resp.StatusCode != 200 {
-			err = errors.Wrapf(err, "jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
+			err = fmt.Errorf("jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 
@@ -102,7 +102,7 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 
 		traces = u.Traces
 
-		if u.Total == expectedTraces {
+		if len(u.Traces) == expectedTraces {
 			break
 		}
 

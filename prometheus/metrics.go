@@ -75,7 +75,7 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 		}
 
 		if resp.StatusCode != 200 {
-			err = errors.Wrapf(err, "prometheus: response from prometheus was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
+			err = fmt.Errorf("prometheus: response from prometheus was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 

@@ -2,7 +2,6 @@ package seq
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +22,8 @@ import (
 var serviceName = "test-service"
 
 func TestGetEvents(t *testing.T) {
+	t.Parallel()
+
 	s := Seq{}
 	seqShutdownFunc, err := s.Start(t.Context())
 	require.NoError(t, err, "seq must be able to start")
@@ -41,10 +42,11 @@ func TestGetEvents(t *testing.T) {
 		}
 	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", c.Ports[4317].Int()))
-
 	// set up otel logger
-	logExporter, err := otlploggrpc.New(t.Context())
+	logExporter, err := otlploggrpc.New(t.Context(),
+		otlploggrpc.WithEndpoint("localhost:"+c.Ports[4317].Port()),
+		otlploggrpc.WithInsecure(),
+	)
 	require.NoError(t, err, "must be able to set up exporter")
 
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))

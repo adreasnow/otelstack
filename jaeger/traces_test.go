@@ -2,7 +2,6 @@ package jaeger
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -20,6 +19,7 @@ import (
 var serviceName = "test service"
 
 func TestGetTraces(t *testing.T) {
+	t.Parallel()
 	j := Jaeger{}
 	shutdownFunc, err := j.Start(t.Context())
 	require.NoError(t, err, "jaeger must be able to start")
@@ -29,10 +29,11 @@ func TestGetTraces(t *testing.T) {
 		}
 	})
 
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", fmt.Sprintf("http://localhost:%d", j.Ports[4318].Int()))
-
 	// set up otel tracer
-	exporter, err := otlptracehttp.New(t.Context())
+	exporter, err := otlptracehttp.New(t.Context(),
+		otlptracehttp.WithEndpoint("localhost:"+j.Ports[4318].Port()),
+		otlptracehttp.WithInsecure(),
+	)
 	require.NoError(t, err, "must be able to set up exporter")
 
 	resources, err := resource.New(t.Context(), resource.WithAttributes(attribute.String("service.name", serviceName)))
