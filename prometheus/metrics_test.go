@@ -86,8 +86,6 @@ func TestGetMetrics(t *testing.T) {
 	)
 	require.NoError(t, err, "must be able to set up the goroutines meter")
 
-	time.Sleep(time.Second * 10)
-
 	m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 	require.NoError(t, err, "must be able to get metrics")
 

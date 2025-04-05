@@ -13,15 +13,39 @@ import (
 
 // Events holds the returned logging events from Seq.
 type Events []struct {
-	Timestamp             time.Time `json:"Timestamp"`
-	MessageTemplateTokens []struct {
-		Text string `json:"Text"`
-	} `json:"MessageTemplateTokens"`
-	Properties []struct {
-		Name  string `json:"Name"`
-		Value any    `json:"Value"`
-	} `json:"Properties"`
-	ID string `json:"Id"`
+	Timestamp  time.Time  `json:"Timestamp"`
+	Properties []Property `json:"Properties"`
+	Messages   []Message  `json:"MessageTemplateTokens"`
+	EventType  string     `json:"EventType"`
+	Level      string     `json:"Level"`
+	TraceID    string     `json:"TraceId"`
+	SpanID     string     `json:"SpanId"`
+	SpanKind   string     `json:"SpanKind"`
+	Resource   []Resource `json:"Resource"`
+	ID         string     `json:"Id"`
+	Links      struct {
+		Self  string `json:"Self"`
+		Group string `json:"Group"`
+	} `json:"Links"`
+}
+
+// Message holds the message template tokens from Seq.
+type Message struct {
+	Text string `json:"Text"`
+}
+
+// Property holds the property name and value from Seq.
+type Property struct {
+	Name  string `json:"Name"`
+	Value any    `json:"Value"`
+}
+
+// Resource holds the resource name and value from Seq.
+type Resource struct {
+	Name  string `json:"Name"`
+	Value struct {
+		Name string `json:"name"`
+	} `json:"Value"`
 }
 
 // GetEvents takes returns the last n logging events that were received by Seq.

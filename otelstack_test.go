@@ -319,8 +319,8 @@ func TestNew(t *testing.T) {
 		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
 		require.Len(t, events, 1)
-		require.Len(t, events[0].MessageTemplateTokens, 1)
-		assert.Equal(t, "test message", events[0].MessageTemplateTokens[0].Text)
+		require.Len(t, events[0].Messages, 1)
+		assert.Equal(t, "test message", events[0].Messages[0].Text)
 	})
 
 	t.Run("traces only", func(t *testing.T) {

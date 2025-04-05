@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -53,8 +52,6 @@ func TestGetTraces(t *testing.T) {
 		}
 	})
 
-	fmt.Println("http://localhost:" + j.Ports[16686].Port())
-
 	var ctx context.Context
 	var span1 trace.Span
 	var span2 trace.Span
@@ -77,10 +74,7 @@ func TestGetTraces(t *testing.T) {
 		}()
 	}
 
-	time.Sleep(time.Second * 1)
-
 	traces, endpoint, err := j.GetTraces(1, 30, serviceName)
-	fmt.Println(endpoint)
 	require.NoError(t, err, "must be able to get traces")
 
 	assert.NotEmpty(t, endpoint, "must return an endpoint")
