@@ -3,8 +3,6 @@ package request
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -137,8 +135,6 @@ func TestRequest(t *testing.T) {
 		var u map[string]string
 		err := Request("http://"+s.Addr+"/", &u)
 		require.Error(t, err)
-
-		fmt.Printf("%T\n", errors.Unwrap(err))
 
 		var syntaxError *json.SyntaxError
 		assert.ErrorAs(t, err, &syntaxError)
