@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -69,34 +70,29 @@ type Log struct {
 // GetTraces takes in a service names and returns the last n traces corresponding to that service.
 // There is a retry mechanism implemented; `GetTraces` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Jaeger returns `expectedTraces` number of traces.
-func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (traces Traces, endpoint string, err error) {
-	var resp *http.Response
-	var body []byte
-	endpoint = fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
+func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (Traces, string, error) {
+	var traces Traces
+	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
 
 	for range maxRetries {
-		resp, err = http.Get(endpoint)
+		resp, err := http.Get(endpoint)
 		if err != nil {
-			err = errors.Wrapf(err, "jaeger: could not get traces from jaeger on endpoint %s", endpoint)
-			return
+			return traces, endpoint, errors.Wrapf(err, "jaeger: could not get traces from jaeger on endpoint %s", endpoint)
 		}
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
-			return
+			return traces, endpoint, fmt.Errorf("jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 		}
 
-		body, err = io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			err = errors.Wrapf(err, "jaeger: could not read body from jaeger response for endpoint %s", endpoint)
-			return
+			return traces, endpoint, errors.Wrapf(err, "jaeger: could not read body from jaeger response for endpoint %s", endpoint)
 		}
 
 		var u unmarshalStruct
 		err = json.Unmarshal(body, &u)
 		if err != nil {
-			err = errors.Wrapf(err, "jaeger: could not unmarshal response into traces for body %s", string(body))
-			return
+			return traces, endpoint, errors.Wrapf(err, "jaeger: could not unmarshal response into traces for body %s", string(body))
 		}
 
 		traces = u.Traces
@@ -104,11 +100,13 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 		if len(u.Traces) == expectedTraces {
 			break
 		}
+
+		time.Sleep(time.Second * 2)
 	}
 
 	if len(traces) < expectedTraces {
-		err = errors.Wrapf(err, "jaeger: could not get %d traces in %d attempts", expectedTraces, maxRetries)
+		return traces, endpoint, fmt.Errorf("jaeger: could not get %d traces in %d attempts", expectedTraces, maxRetries)
 	}
 
-	return
+	return traces, endpoint, nil
 }

@@ -97,24 +97,37 @@ func TestGetEvents(t *testing.T) {
 		}()
 	}
 
-	events, endpoint, err := s.GetEvents(1, 30)
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
 
-	require.NoError(t, err, "must be able to get events")
-	assert.NotEmpty(t, endpoint, "must return an endpoint")
-	require.Len(t, events, 1)
+		time.Sleep(time.Second * 3)
 
-	assert.Equal(t, span.SpanContext().SpanID().String(), events[0].SpanID)
-	assert.Equal(t, span.SpanContext().TraceID().String(), events[0].TraceID)
+		events, endpoint, err := s.GetEvents(1, 30)
 
-	require.Len(t, events[0].Messages, 1)
-	assert.Equal(t, "this is an error message", events[0].Messages[0].Text)
+		require.NoError(t, err, "must be able to get events")
+		assert.NotEmpty(t, endpoint, "must return an endpoint")
+		require.Len(t, events, 1)
 
-	require.Len(t, events[0].Properties, 3)
-	propertiesMap := map[string]Property{}
-	for _, p := range events[0].Properties {
-		propertiesMap[p.Name] = p
-	}
-	assert.Equal(t, 3.14159, propertiesMap["testFloat"].Value.(float64))
-	assert.True(t, propertiesMap["testBool"].Value.(bool))
-	assert.Equal(t, "otelstack: creating a test error", propertiesMap["error"].Value.(string))
+		assert.Equal(t, span.SpanContext().SpanID().String(), events[0].SpanID)
+		assert.Equal(t, span.SpanContext().TraceID().String(), events[0].TraceID)
+
+		require.Len(t, events[0].Messages, 1)
+		assert.Equal(t, "this is an error message", events[0].Messages[0].Text)
+
+		require.Len(t, events[0].Properties, 3)
+		propertiesMap := map[string]Property{}
+		for _, p := range events[0].Properties {
+			propertiesMap[p.Name] = p
+		}
+		assert.Equal(t, 3.14159, propertiesMap["testFloat"].Value.(float64))
+		assert.True(t, propertiesMap["testBool"].Value.(bool))
+		assert.Equal(t, "otelstack: creating a test error", propertiesMap["error"].Value.(string))
+	})
+
+	t.Run("not enough values", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := s.GetEvents(10, 2)
+
+		require.Error(t, err)
+	})
 }

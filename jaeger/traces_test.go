@@ -3,6 +3,7 @@ package jaeger
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -75,90 +76,103 @@ func TestGetTraces(t *testing.T) {
 		}()
 	}
 
-	traces, endpoint, err := j.GetTraces(1, 30, serviceName)
-	require.NoError(t, err, "must be able to get traces")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NotEmpty(t, endpoint, "must return an endpoint")
-	require.Len(t, traces, 1)
-	require.Len(t, traces[0].Spans, 2)
-	spanMap := map[string]Span{}
-	for _, s := range traces[0].Spans {
-		spanMap[s.OperationName] = s
-	}
-	{ // outer span
-		assert.Equal(t, "segment.parent", spanMap["segment.parent"].OperationName)
-		assert.Equal(t, span1.SpanContext().SpanID().String(), spanMap["segment.parent"].SpanID)
-		assert.Equal(t, span1.SpanContext().TraceID().String(), spanMap["segment.parent"].TraceID)
+		time.Sleep(time.Second * 3)
 
-		assert.Empty(t, spanMap["segment.parent"].References)
-		assert.Len(t, spanMap["segment.parent"].Tags, 2)
+		traces, endpoint, err := j.GetTraces(1, 30, serviceName)
+		require.NoError(t, err, "must be able to get traces")
 
-		{ // logs
-			require.Len(t, spanMap["segment.parent"].Logs, 1)
-			require.Len(t, spanMap["segment.parent"].Logs[0].Fields, 1)
-
-			assert.Contains(t, spanMap["segment.parent"].Logs[0].Fields, KeyValue{
-				Key:   "event",
-				Type:  "string",
-				Value: any("this is a log event"),
-			})
+		assert.NotEmpty(t, endpoint, "must return an endpoint")
+		require.Len(t, traces, 1)
+		require.Len(t, traces[0].Spans, 2)
+		spanMap := map[string]Span{}
+		for _, s := range traces[0].Spans {
+			spanMap[s.OperationName] = s
 		}
-	}
+		{ // outer span
+			assert.Equal(t, "segment.parent", spanMap["segment.parent"].OperationName)
+			assert.Equal(t, span1.SpanContext().SpanID().String(), spanMap["segment.parent"].SpanID)
+			assert.Equal(t, span1.SpanContext().TraceID().String(), spanMap["segment.parent"].TraceID)
 
-	{ // inner span
-		assert.Equal(t, "segment.child", spanMap["segment.child"].OperationName)
-		assert.Equal(t, span2.SpanContext().SpanID().String(), spanMap["segment.child"].SpanID)
-		assert.Equal(t, span2.SpanContext().TraceID().String(), spanMap["segment.child"].TraceID)
+			assert.Empty(t, spanMap["segment.parent"].References)
+			assert.Len(t, spanMap["segment.parent"].Tags, 2)
 
-		assert.Equal(t, Reference{
-			RefType: "CHILD_OF",
-			TraceID: span1.SpanContext().TraceID().String(),
-			SpanID:  span1.SpanContext().SpanID().String(),
-		}, spanMap["segment.child"].References[0])
+			{ // logs
+				require.Len(t, spanMap["segment.parent"].Logs, 1)
+				require.Len(t, spanMap["segment.parent"].Logs[0].Fields, 1)
 
-		{ // tags
-			require.Len(t, spanMap["segment.child"].Tags, 4)
-
-			assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
-				Key:   "error",
-				Type:  "bool",
-				Value: any(true),
-			})
-
-			assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
-				Key:   "otel.scope.name",
-				Type:  "string",
-				Value: any(serviceName),
-			})
-
-			assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
-				Key:   "otel.status_code",
-				Type:  "string",
-				Value: any("ERROR"),
-			})
+				assert.Contains(t, spanMap["segment.parent"].Logs[0].Fields, KeyValue{
+					Key:   "event",
+					Type:  "string",
+					Value: any("this is a log event"),
+				})
+			}
 		}
 
-		{ // logs
-			require.Len(t, spanMap["segment.child"].Logs, 1)
-			require.Len(t, spanMap["segment.child"].Logs[0].Fields, 3)
+		{ // inner span
+			assert.Equal(t, "segment.child", spanMap["segment.child"].OperationName)
+			assert.Equal(t, span2.SpanContext().SpanID().String(), spanMap["segment.child"].SpanID)
+			assert.Equal(t, span2.SpanContext().TraceID().String(), spanMap["segment.child"].TraceID)
 
-			assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
-				Key:   "event",
-				Type:  "string",
-				Value: any("exception"),
-			})
+			assert.Equal(t, Reference{
+				RefType: "CHILD_OF",
+				TraceID: span1.SpanContext().TraceID().String(),
+				SpanID:  span1.SpanContext().SpanID().String(),
+			}, spanMap["segment.child"].References[0])
 
-			assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
-				Key:   "exception.message",
-				Type:  "string",
-				Value: any("something bad just happened"),
-			})
+			{ // tags
+				require.Len(t, spanMap["segment.child"].Tags, 4)
 
-			assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
-				Key:   "exception.type",
-				Type:  "string",
-				Value: any("*errors.fundamental"),
-			})
+				assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
+					Key:   "error",
+					Type:  "bool",
+					Value: any(true),
+				})
+
+				assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
+					Key:   "otel.scope.name",
+					Type:  "string",
+					Value: any(serviceName),
+				})
+
+				assert.Contains(t, spanMap["segment.child"].Tags, KeyValue{
+					Key:   "otel.status_code",
+					Type:  "string",
+					Value: any("ERROR"),
+				})
+			}
+
+			{ // logs
+				require.Len(t, spanMap["segment.child"].Logs, 1)
+				require.Len(t, spanMap["segment.child"].Logs[0].Fields, 3)
+
+				assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
+					Key:   "event",
+					Type:  "string",
+					Value: any("exception"),
+				})
+
+				assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
+					Key:   "exception.message",
+					Type:  "string",
+					Value: any("something bad just happened"),
+				})
+
+				assert.Contains(t, spanMap["segment.child"].Logs[0].Fields, KeyValue{
+					Key:   "exception.type",
+					Type:  "string",
+					Value: any("*errors.fundamental"),
+				})
+			}
 		}
-	}
+	})
+
+	t.Run("wrong service", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, err := j.GetTraces(1, 30, "bad-service")
+		require.Error(t, err)
+	})
 }

@@ -87,14 +87,42 @@ func TestGetMetrics(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err, "must be able to set up the goroutines meter")
-	m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
-	require.NoError(t, err, "must be able to get metrics")
 
-	assert.NotEmpty(t, endpoint, "must return an endpoint")
-	require.GreaterOrEqual(t, len(m.Values), 3)
-	require.Len(t, m.Values[0], 2)
-	num, err := strconv.Atoi(m.Values[0][1].(string))
-	require.NoError(t, err, "must be able to parse the metric value")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Greater(t, num, 2)
+		time.Sleep(time.Second * 3)
+
+		m, endpoint, err := p.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
+		require.NoError(t, err, "must be able to get metrics")
+
+		assert.NotEmpty(t, endpoint, "must return an endpoint")
+		require.GreaterOrEqual(t, len(m.Values), 3)
+		require.Len(t, m.Values[0], 2)
+		num, err := strconv.Atoi(m.Values[0][1].(string))
+		require.NoError(t, err, "must be able to parse the metric value")
+
+		assert.Greater(t, num, 2)
+	})
+
+	t.Run("not enough values", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "goroutine_count", serviceName, time.Second*30)
+
+		require.Error(t, err)
+	})
+
+	t.Run("wrong metric", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "non_existing_metric", serviceName, time.Second*30)
+
+		require.Error(t, err)
+	})
+
+	t.Run("wrong service", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := p.GetMetrics(10, 2, "goroutine_count", "bad-service", time.Second*30)
+
+		require.Error(t, err)
+	})
 }

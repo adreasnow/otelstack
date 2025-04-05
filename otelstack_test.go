@@ -232,13 +232,11 @@ func setupOTELgRPC(t *testing.T, metrics bool, logs bool, traces bool, port nat.
 }
 
 func TestStart(t *testing.T) {
-	t.Parallel()
 	testData := []struct {
 		name string
 	}{{"gRPC"}, {"HTTP"}}
 	for _, tt := range testData {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			s := Stack{
 				logs: true,
 			}
@@ -270,6 +268,8 @@ func TestStart(t *testing.T) {
 					Logger(serviceName).
 					Emit(t.Context(), record)
 			}
+
+			time.Sleep(time.Second * 3)
 
 			events, _, err := s.Seq.GetEvents(1, 30)
 			require.NoError(t, err)
@@ -312,8 +312,6 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("metrics only", func(t *testing.T) {
-		t.Parallel()
-
 		s := New(true, false, false)
 		shutdownStack, err := s.Start(t.Context())
 		require.NoError(t, err, "the stack must start up")
@@ -329,6 +327,8 @@ func TestNew(t *testing.T) {
 
 		startGoroutineMeter(t)
 
+		time.Sleep(time.Second * 3)
+
 		metrics, _, err := s.Prometheus.GetMetrics(3, 30, "goroutine_count", serviceName, time.Second*30)
 		require.NoError(t, err, "must be able to get metrics")
 
@@ -341,8 +341,6 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("logs only", func(t *testing.T) {
-		t.Parallel()
-
 		s := New(false, true, false)
 		shutdownStack, err := s.Start(t.Context())
 		require.NoError(t, err, "the stack must start up")
@@ -366,6 +364,8 @@ func TestNew(t *testing.T) {
 				Logger(serviceName).
 				Emit(t.Context(), record)
 		}
+
+		time.Sleep(time.Second * 3)
 
 		events, _, err := s.Seq.GetEvents(1, 30)
 		require.NoError(t, err)
@@ -395,6 +395,8 @@ func TestNew(t *testing.T) {
 			time.Sleep(time.Millisecond * 100)
 			span.End()
 		}
+
+		time.Sleep(time.Second * 3)
 
 		traces, _, err := s.Jaeger.GetTraces(1, 30, serviceName)
 

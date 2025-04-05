@@ -51,42 +51,41 @@ type Resource struct {
 // GetEvents takes returns the last n logging events that were received by Seq.
 // There is a retry mechanism implemented; `GetEvents` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Jaeger returns `expectedEvents` number of events.
-func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (events Events, endpoint string, err error) {
-	var resp *http.Response
-	var body []byte
-	endpoint = fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), expectedEvents)
+func (s *Seq) GetEvents(expectedEvents int, maxRetries int) (Events, string, error) {
+	var events Events
+
+	endpoint := fmt.Sprintf("http://localhost:%d/api/events?count=%d", s.Ports[80].Int(), expectedEvents)
 
 	for range maxRetries {
-		resp, err = http.Get(endpoint)
+		resp, err := http.Get(endpoint)
 		if err != nil {
-			err = errors.Wrapf(err, "seq: could not get log event from seq on endpoint %s", endpoint)
-			return
+			return events, endpoint, errors.Wrapf(err, "seq: could not get log event from seq on endpoint %s", endpoint)
 		}
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("seq: response from seq was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
-			return
+			return events, endpoint, fmt.Errorf("seq: response from seq was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 		}
 
-		body, err = io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			err = errors.Wrapf(err, "seq: could not read body from seq response for endpoint %s", endpoint)
-			return
+			return events, endpoint, errors.Wrapf(err, "seq: could not read body from seq response for endpoint %s", endpoint)
 		}
 
 		err = json.Unmarshal(body, &events)
 		if err != nil {
-			err = errors.Wrapf(err, "seq: could not unmarshal response into events for body %s", string(body))
-			return
+			return events, endpoint, errors.Wrapf(err, "seq: could not unmarshal response into events for body %s", string(body))
 		}
+
 		if len(events) == expectedEvents {
 			break
 		}
+
+		time.Sleep(time.Second * 2)
 	}
 
 	if len(events) < expectedEvents {
-		err = errors.Wrapf(err, "seq: could not get %d events in %d attempts", expectedEvents, maxRetries)
+		return events, endpoint, fmt.Errorf("seq: could not get %d events in %d attempts", expectedEvents, maxRetries)
 	}
 
-	return
+	return events, endpoint, nil
 }
