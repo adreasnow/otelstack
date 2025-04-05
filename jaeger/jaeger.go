@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -32,7 +31,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 	if j.Network == nil {
 		j.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, errors.WithMessage(err, "jaeger: network not provided and could not create a new one")
+			return emptyFunc, fmt.Errorf("jaeger: network not provided and could not create a new one: %w", err)
 		}
 	}
 
@@ -52,19 +51,19 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "jaeger: could not start the testcontainer")
+		return emptyFunc, fmt.Errorf("jaeger: could not start the testcontainer: %w", err)
 	}
 
 	j.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "jaeger: could not read the name of the container from the testcontainer")
+		return emptyFunc, fmt.Errorf("jaeger: could not read the name of the container from the testcontainer: %w", err)
 	}
 	j.Name = j.Name[1:]
 
 	for _, portNum := range []int{16686, 4318} {
 		j.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, errors.Wrapf(err, "jaeger: could not retrieve port %d from the testcontainer", portNum)
+			return emptyFunc, fmt.Errorf("jaeger: could not retrieve port %d from the testcontainer: %w", portNum, err)
 		}
 	}
 

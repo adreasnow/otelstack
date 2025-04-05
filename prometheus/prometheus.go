@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -33,7 +32,7 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 	if p.Network == nil {
 		p.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, errors.WithMessage(err, "prometheus: network not provided and could not create a new one")
+			return emptyFunc, fmt.Errorf("prometheus: network not provided and could not create a new one: %w", err)
 		}
 	}
 
@@ -54,19 +53,19 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "prometheus: could not start the testcontainer")
+		return emptyFunc, fmt.Errorf("prometheus: could not start the testcontainer: %w", err)
 	}
 
 	p.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "prometheus: could not read the name of the container from the testcontainer")
+		return emptyFunc, fmt.Errorf("prometheus: could not read the name of the container from the testcontainer: %w", err)
 	}
 	p.Name = p.Name[1:]
 
 	for _, portNum := range []int{9090} {
 		p.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, errors.Wrapf(err, "prometheus: could not retrieve port %d from the testcontainer", portNum)
+			return emptyFunc, fmt.Errorf("prometheus: could not retrieve port %d from the testcontainer: %w", portNum, err)
 		}
 	}
 

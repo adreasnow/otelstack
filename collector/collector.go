@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -33,7 +32,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 	if c.Network == nil {
 		c.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, errors.WithMessage(err, "collector: network not provided and could not create a new one")
+			return emptyFunc, fmt.Errorf("collector: network not provided and could not create a new one: %w", err)
 		}
 	}
 
@@ -54,19 +53,19 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "collector: could not start the testcontainer")
+		return emptyFunc, fmt.Errorf("collector: could not start the testcontainer: %w", err)
 	}
 
 	c.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, errors.WithMessage(err, "collector: could not read the name of the container from the testcontainer")
+		return emptyFunc, fmt.Errorf("collector: could not read the name of the container from the testcontainer: %w", err)
 	}
 	c.Name = c.Name[1:]
 
 	for _, portNum := range []int{4317, 4318, 13133} {
 		c.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, errors.Wrapf(err, "collector: could not retrieve port %d from the testcontainer", portNum)
+			return emptyFunc, fmt.Errorf("collector: could not retrieve port %d from the testcontainer: %w", portNum, err)
 		}
 	}
 

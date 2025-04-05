@@ -59,6 +59,11 @@
     "resp",
     "Cleanup",
     "LINTERS",
-    "linters"
+    "linters",
+    "Retryable",
+    "retryable",
+    "unmarshals",
+    "nolint",
+    "unmarshalable"
   ]
 }

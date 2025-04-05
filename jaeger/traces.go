@@ -2,14 +2,12 @@
 package jaeger
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/adreasnow/otelstack/request"
 )
 
 type unmarshalStruct struct {
@@ -67,6 +65,8 @@ type Log struct {
 	Fields    []KeyValue `json:"fields"`
 }
 
+var errRespCode = fmt.Errorf("the return was not of status 200")
+
 // GetTraces takes in a service names and returns the last n traces corresponding to that service.
 // There is a retry mechanism implemented; `GetTraces` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Jaeger returns `expectedTraces` number of traces.
@@ -74,39 +74,27 @@ func (j *Jaeger) GetTraces(expectedTraces int, maxRetries int, service string) (
 	var traces Traces
 	endpoint := fmt.Sprintf("http://localhost:%d/api/traces?service=%s&limit=%d", j.Ports[16686].Int(), url.QueryEscape(service), expectedTraces)
 
-	for range maxRetries {
-		resp, err := http.Get(endpoint)
-		if err != nil {
-			return traces, endpoint, errors.Wrapf(err, "jaeger: could not get traces from jaeger on endpoint %s", endpoint)
-		}
-
-		if resp.StatusCode != 200 {
-			return traces, endpoint, fmt.Errorf("jaeger: response from jaeger was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return traces, endpoint, errors.Wrapf(err, "jaeger: could not read body from jaeger response for endpoint %s", endpoint)
+	var attempts int
+	for {
+		attempts++
+		if attempts > 1 {
+			time.Sleep(time.Second * 2)
 		}
 
 		var u unmarshalStruct
-		err = json.Unmarshal(body, &u)
-		if err != nil {
-			return traces, endpoint, errors.Wrapf(err, "jaeger: could not unmarshal response into traces for body %s", string(body))
+		err := request.Request(endpoint, &u)
+		if err != nil && !errors.Is(err, errRespCode) {
+			return traces, endpoint, fmt.Errorf("jaeger: request returned a non-retryable error: %w", err)
 		}
 
 		traces = u.Traces
 
-		if len(u.Traces) == expectedTraces {
-			break
+		if len(traces) >= expectedTraces {
+			return traces, endpoint, nil
 		}
 
-		time.Sleep(time.Second * 2)
+		if attempts >= maxRetries {
+			return traces, endpoint, fmt.Errorf("jaeger: could not get %d traces in %d attempts", expectedTraces, maxRetries)
+		}
 	}
-
-	if len(traces) < expectedTraces {
-		return traces, endpoint, fmt.Errorf("jaeger: could not get %d traces in %d attempts", expectedTraces, maxRetries)
-	}
-
-	return traces, endpoint, nil
 }

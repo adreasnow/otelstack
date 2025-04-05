@@ -14,7 +14,7 @@ require.NotNil(t, err, "the stack must start up")
 // be sure to defer shutdown of the stack
 t.Cleanup(func() {
   if err := shutdownFunc(context.Background()); err != nil {
-    t.Logf("error shutting down stack: %v", err)
+    t.Logf("error shutting down stack: %w", err)
   }
 })
 
