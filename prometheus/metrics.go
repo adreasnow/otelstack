@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
+	"github.com/pkg/errors"
 )
 
 type unmarshalStruct struct {
@@ -45,7 +46,7 @@ type request struct {
 // GetMetrics takes in a service names and returns the last n `metricName` events corresponding to that `service` over that `since`.
 // There is a retry mechanism implemented; `GetMetrics` will keep fetching every 2 seconds, for a maximum
 // of `maxRetries` times, until Prometheus returns `expectedDataPoints` number of metrics points.
-func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricName string, service string, since time.Duration) (metrics Metrics, err error) {
+func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricName string, service string, since time.Duration) (metrics Metrics, endpoint string, err error) {
 	var resp *http.Response
 	var body []byte
 	startTime := time.Now()
@@ -61,33 +62,33 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 
 		v, queryErr := query.Values(request)
 		if queryErr != nil {
-			err = fmt.Errorf("cannot build endpoint: %v", queryErr)
-			return metrics, err
+			err = errors.Wrapf(queryErr, "prometheus: could not marshal values into a url query for request %v", request)
+			return
 		}
 
-		endpoint := fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
+		endpoint = fmt.Sprintf("http://localhost:%d/api/v1/query_range?%s", p.Ports[9090].Int(), v.Encode())
 
 		resp, err = http.Get(endpoint)
 		if err != nil {
-			err = fmt.Errorf("cannot get metrics from prometheus: %v", err)
+			err = errors.Wrapf(err, "prometheus: could not get metrics from prometheus on endpoint %s", endpoint)
 			return
 		}
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("not a 200 response, got %d", resp.StatusCode)
+			err = fmt.Errorf("prometheus: response from prometheus was not 200: got %d on endpoint %s", resp.StatusCode, endpoint)
 			return
 		}
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			err = fmt.Errorf("could not get set body from seq response: %v", err)
+			err = errors.Wrapf(err, "prometheus: could not read body from prometheus response for endpoint %s", endpoint)
 			return
 		}
 
 		var u unmarshalStruct
 		err = json.Unmarshal(body, &u)
 		if err != nil {
-			err = fmt.Errorf("could not unmarshal traces: %v", err)
+			err = errors.Wrapf(err, "prometheus: could not unmarshal response into metrics for body %s", string(body))
 			return
 		}
 
@@ -103,7 +104,7 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 	}
 
 	if len(metrics.Values) < expectedDataPoints {
-		err = fmt.Errorf("could not get %d metric points in %d attempts: %v", expectedDataPoints, maxRetries, err)
+		err = errors.Wrapf(err, "prometheus: could not get %d metric points in %d attempts", expectedDataPoints, maxRetries)
 	}
 
 	return

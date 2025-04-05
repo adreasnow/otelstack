@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,8 @@ func TestPrometheusStart(t *testing.T) {
 			t.Logf("error shutting down prometheus: %v", err)
 		}
 	})
+
+	time.Sleep(time.Second*2)
 
 	endpoint := fmt.Sprintf("http://localhost:%d", p.Ports[9090].Int())
 	t.Logf("using endpoint: %s", endpoint)

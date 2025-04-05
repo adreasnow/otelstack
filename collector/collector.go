@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -32,7 +33,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 	if c.Network == nil {
 		c.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, fmt.Errorf("could not create network: %v", err)
+			return emptyFunc, errors.WithMessage(err, "collector: network not provided and could not create a new one")
 		}
 	}
 
@@ -43,7 +44,7 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 			Image:        "otel/opentelemetry-collector:0.117.0",
 			ExposedPorts: []string{"4317/tcp", "4318/tcp", "13133/tcp"},
 			Networks:     []string{c.Network.Name},
-			WaitingFor:   wait.ForListeningPort("13133/tcp"),
+			WaitingFor:   wait.ForLog("Everything is ready. Begin running and processing data"),
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/otelcol/config.yaml",
 				Reader:            strings.NewReader(c.config),
@@ -53,19 +54,19 @@ func (c *Collector) Start(ctx context.Context, jaegerName string, seqName string
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, fmt.Errorf("otel collector could not start: %v", err)
+		return emptyFunc, errors.WithMessage(err, "collector: could not start the testcontainer")
 	}
 
 	c.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, fmt.Errorf("could not get container name: %v", err)
+		return emptyFunc, errors.WithMessage(err, "collector: could not read the name of the container from the testcontainer")
 	}
 	c.Name = c.Name[1:]
 
 	for _, portNum := range []int{4317, 4318, 13133} {
 		c.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
+			return emptyFunc, errors.Wrapf(err, "collector: could not retrieve port %d from the testcontainer", portNum)
 		}
 	}
 

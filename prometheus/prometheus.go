@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -32,7 +33,7 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 	if p.Network == nil {
 		p.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, fmt.Errorf("could not create network: %v", err)
+			return emptyFunc, errors.WithMessage(err, "prometheus: network not provided and could not create a new one")
 		}
 	}
 
@@ -43,7 +44,7 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 			Image:        "prom/prometheus:v3.2.1",
 			ExposedPorts: []string{"9090/tcp"},
 			Networks:     []string{p.Network.Name},
-			WaitingFor:   wait.ForListeningPort("9090/tcp"),
+			WaitingFor:   wait.ForLog("Server is ready to receive web requests."),
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/prometheus/prometheus.yml",
 				Reader:            strings.NewReader(p.config),
@@ -53,19 +54,19 @@ func (p *Prometheus) Start(ctx context.Context, collectorName string) (func(cont
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, fmt.Errorf("prometheus could not start: %v", err)
+		return emptyFunc, errors.WithMessage(err, "prometheus: could not start the testcontainer")
 	}
 
 	p.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, fmt.Errorf("could not get container name: %v", err)
+		return emptyFunc, errors.WithMessage(err, "prometheus: could not read the name of the container from the testcontainer")
 	}
 	p.Name = p.Name[1:]
 
 	for _, portNum := range []int{9090} {
 		p.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
+			return emptyFunc, errors.Wrapf(err, "prometheus: could not retrieve port %d from the testcontainer", portNum)
 		}
 	}
 

@@ -44,6 +44,9 @@ jobs:
             go.sum
 
       - name: Test
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          TESTCONTAINERS_CHECKS_DISABLE: "true"
         run: >
           go tool gotestsum
           --jsonfile gotestsum.json

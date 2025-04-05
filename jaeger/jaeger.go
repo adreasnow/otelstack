@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -31,7 +32,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 	if j.Network == nil {
 		j.Network, err = network.New(ctx)
 		if err != nil {
-			return emptyFunc, fmt.Errorf("could not create network: %v", err)
+			return emptyFunc, errors.WithMessage(err, "jaeger: network not provided and could not create a new one")
 		}
 	}
 
@@ -40,7 +41,7 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 			Image:        "jaegertracing/jaeger:latest",
 			ExposedPorts: []string{"16686/tcp", "4318/tcp"},
 			Networks:     []string{j.Network.Name},
-			WaitingFor:   wait.ForListeningPort("16686/tcp"),
+			WaitingFor:   wait.ForLog("Everything is ready."),
 			Cmd:          []string{"--config", "/etc/jaeger/config.yaml"},
 			Files: []testcontainers.ContainerFile{{
 				ContainerFilePath: "/etc/jaeger/config.yaml",
@@ -51,19 +52,19 @@ func (j *Jaeger) Start(ctx context.Context) (func(context.Context) error, error)
 		Started: true,
 	})
 	if err != nil {
-		return emptyFunc, fmt.Errorf("jaeger could not start: %v", err)
+		return emptyFunc, errors.WithMessage(err, "jaeger: could not start the testcontainer")
 	}
 
 	j.Name, err = container.Name(ctx)
 	if err != nil {
-		return emptyFunc, fmt.Errorf("could not get container name: %v", err)
+		return emptyFunc, errors.WithMessage(err, "jaeger: could not read the name of the container from the testcontainer")
 	}
 	j.Name = j.Name[1:]
 
 	for _, portNum := range []int{16686, 4318} {
 		j.Ports[portNum], err = container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", portNum)))
 		if err != nil {
-			return emptyFunc, fmt.Errorf("the port %d could not be retrieved: %v", portNum, err)
+			return emptyFunc, errors.Wrapf(err, "jaeger: could not retrieve port %d from the testcontainer", portNum)
 		}
 	}
 
