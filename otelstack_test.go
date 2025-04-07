@@ -288,12 +288,6 @@ func TestNew(t *testing.T) {
 		shutdownStack, err := s.Start(t.Context())
 		require.NoError(t, err, "the stack must start up")
 
-		t.Cleanup(func() {
-			if err := shutdownStack(context.Background()); err != nil {
-				t.Logf("error shutting down otel: %v", err)
-			}
-		})
-
 		resp, err := http.Get("http://localhost:" + s.Seq.Ports[80].Port())
 		require.NoError(t, err, "must be able to call seq")
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -309,6 +303,9 @@ func TestNew(t *testing.T) {
 		resp, err = http.Get("http://localhost:" + s.Collector.Ports[13133].Port() + "/health/status")
 		require.NoError(t, err, "must be able to call collector")
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		err = shutdownStack(t.Context())
+		require.NoError(t, err, "the stack must shut down")
 	})
 
 	t.Run("metrics only", func(t *testing.T) {

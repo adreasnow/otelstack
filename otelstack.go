@@ -70,8 +70,11 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		// Reverse the slice so that the network is shut down last
 		slices.Reverse(shutdownFuncs)
 		for _, f := range shutdownFuncs {
+			var err error
 			err = errors.Join(err, f(ctx))
-			err = fmt.Errorf("otelstack: error shutting down container: %w", err)
+			if err != nil {
+				err = fmt.Errorf("otelstack: error shutting down container: %w", err)
+			}
 		}
 		return
 	}
@@ -87,9 +90,12 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		jaegerShutdown, err := s.Jaeger.Start(ctx)
 		if err != nil {
 			err = fmt.Errorf("otelstack: could not start jaeger: %w", err)
-			return emptyFunc, errors.Join(
-				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed jaeger start: %w", shutdown(ctx)),
-			)
+			if shutdownErr := shutdown(ctx); shutdownErr != nil {
+				errors.Join(
+					err, fmt.Errorf("otelstack: error occurred while shutting down services after failed jaeger start: %w", shutdownErr),
+				)
+			}
+			return emptyFunc, err
 		}
 		shutdownFuncs = append(shutdownFuncs, jaegerShutdown)
 	}
@@ -99,9 +105,12 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		seqShutdown, err := s.Seq.Start(ctx)
 		if err != nil {
 			err = fmt.Errorf("otelstack: could not start seq: %w", err)
-			return emptyFunc, errors.Join(
-				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed seq start: %w", shutdown(ctx)),
-			)
+			if shutdownErr := shutdown(ctx); shutdownErr != nil {
+				errors.Join(
+					err, fmt.Errorf("otelstack: error occurred while shutting down services after failed seq start: %w", shutdownErr),
+				)
+			}
+			return emptyFunc, err
 		}
 		shutdownFuncs = append(shutdownFuncs, seqShutdown)
 	}
@@ -110,9 +119,12 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 	collectorShutdown, err := s.Collector.Start(ctx, s.Jaeger.Name, s.Seq.Name)
 	if err != nil {
 		err = fmt.Errorf("otelstack: could not start collector: %w", err)
-		return emptyFunc, errors.Join(
-			err, fmt.Errorf("otelstack: error occurred while shutting down services after failed collector start: %w", shutdown(ctx)),
-		)
+		if shutdownErr := shutdown(ctx); shutdownErr != nil {
+			errors.Join(
+				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed collector start: %w", shutdownErr),
+			)
+		}
+		return emptyFunc, err
 	}
 	shutdownFuncs = append(shutdownFuncs, collectorShutdown)
 
@@ -121,9 +133,12 @@ func (s *Stack) Start(ctx context.Context) (func(context.Context) error, error) 
 		prometheusShutdown, err := s.Prometheus.Start(ctx, s.Collector.Name)
 		if err != nil {
 			err = fmt.Errorf("otelstack: could not start prometheus: %w", err)
-			return emptyFunc, errors.Join(
-				err, fmt.Errorf("otelstack: error occurred while shutting down services after failed prometheus start: %w", shutdown(ctx)),
-			)
+			if shutdownErr := shutdown(ctx); shutdownErr != nil {
+				errors.Join(
+					err, fmt.Errorf("otelstack: error occurred while shutting down services after failed prometheus start: %w", shutdownErr),
+				)
+			}
+			return emptyFunc, err
 		}
 		shutdownFuncs = append(shutdownFuncs, prometheusShutdown)
 	}
