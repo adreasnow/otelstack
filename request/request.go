@@ -28,11 +28,16 @@ var retryCodes = []int{
 }
 
 // Request sends a GET request to the specified endpoint and unmarshals the response body into the provided struct.
-func Request[U any](endpoint string, unmarshal *U) error {
+func Request[U any](endpoint string, unmarshal *U) (err error) {
 	resp, err := http.Get(endpoint)
 	if err != nil {
 		return fmt.Errorf("request: could not get response on endpoint %s: %w", endpoint, err)
 	}
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			err = fmt.Errorf("request: cerror while closing response body %s: %w", endpoint, err)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		var err error

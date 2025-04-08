@@ -92,29 +92,3 @@ func (p *Prometheus) GetMetrics(expectedDataPoints int, maxRetries int, metricNa
 		}
 	}
 }
-
-// func request(endpoint string) (Metrics, error) {
-// 	var metrics Metrics
-
-// 	resp, err := http.Get(endpoint)
-// 	if err != nil {
-// 		return metrics, fmt.Errorf("prometheus: could not get traces from prometheus on endpoint %s: %w", endpoint, err)
-// 	}
-
-// 	if resp.StatusCode != 200 {
-// 		return metrics, fmt.Errorf("prometheus: response from prometheus was not 200: got %d on endpoint %s: %w", resp.StatusCode, endpoint, errRespCode)
-// 	}
-
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return metrics, fmt.Errorf("prometheus: could not read body from prometheus response for endpoint %s: %w", endpoint, err)
-// 	}
-
-// 	var u unmarshalStruct
-// 	err = json.Unmarshal(body, &u)
-// 	if err != nil {
-// 		return metrics, fmt.Errorf("prometheus: could not unmarshal response into metrics for body %s: %w", string(body), err)
-// 	}
-
-// 	return metrics, nil
-// }
