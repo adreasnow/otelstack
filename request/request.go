@@ -36,7 +36,7 @@ func Request[U any](endpoint string, unmarshal *U) (err error) {
 
 	defer func() {
 		if deferErr := resp.Body.Close(); deferErr != nil {
-			err = fmt.Errorf("request: cerror while closing response body %s: %w", endpoint, deferErr)
+			err = fmt.Errorf("request: error while closing response body %s: %w", endpoint, deferErr)
 		}
 	}()
 
