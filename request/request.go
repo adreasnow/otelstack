@@ -33,9 +33,10 @@ func Request[U any](endpoint string, unmarshal *U) (err error) {
 	if err != nil {
 		return fmt.Errorf("request: could not get response on endpoint %s: %w", endpoint, err)
 	}
+
 	defer func() {
-		if err = resp.Body.Close(); err != nil {
-			err = fmt.Errorf("request: cerror while closing response body %s: %w", endpoint, err)
+		if deferErr := resp.Body.Close(); deferErr != nil {
+			err = fmt.Errorf("request: cerror while closing response body %s: %w", endpoint, deferErr)
 		}
 	}()
 
