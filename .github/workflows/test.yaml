@@ -6,8 +6,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  workflow_call:
 
-name: Test and tag
+name: Test
 permissions:
   contents: write
   pull-requests: write
@@ -28,7 +29,7 @@ jobs:
             go.sum
 
       - name: Run Golang-CI Lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
 
   test:
     name: Run Tests
@@ -61,7 +62,7 @@ jobs:
         run: go tool go-ctrf-json-reporter -output report.json < gotestsum.json
 
       - name: Publish Test Report to PR
-        uses: ctrf-io/github-test-reporter@v1.0.14
+        uses: ctrf-io/github-test-reporter@v1.0.12
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,7 +75,7 @@ jobs:
           overwrite-comment: true
 
       - name: Publish Test Report to Summary
-        uses: ctrf-io/github-test-reporter@v1.0.14
+        uses: ctrf-io/github-test-reporter@v1.0.12
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -112,33 +113,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_STATUS_REPORTER: true
-  tag:
-    if: ${{ github.event_name != 'pull_request'  }}
-    name: Increment Tag
-    needs:
-      - lint
-      - test
-      - megalinter
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get next version
-        uses: reecetech/version-increment@2024.10.1
-        id: version
-        with:
-          scheme: semver
-          increment: patch
-          tag_prefix: v
-
-      - name: Create tag
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ steps.version.outputs.v-version }}',
-              sha: context.sha
-            })
