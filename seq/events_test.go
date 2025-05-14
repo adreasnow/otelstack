@@ -16,6 +16,7 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -92,7 +93,7 @@ func TestGetEvents(t *testing.T) {
 			record.AddAttributes(
 				log.Bool("testBool", true),
 				log.Float64("testFloat", 3.14159),
-				log.String("error", "otelstack: creating a test error"),
+				log.String(string(semconv.ExceptionMessageKey), "otelstack: creating a test error"),
 			)
 			otelLogGlobal.GetLoggerProvider().Logger("").Emit(ctx, record)
 		}()
@@ -115,14 +116,15 @@ func TestGetEvents(t *testing.T) {
 		require.Len(t, events[0].Messages, 1)
 		assert.Equal(t, "this is an error message", events[0].Messages[0].Text)
 
-		require.Len(t, events[0].Properties, 3)
+		require.Len(t, events[0].Properties, 2)
 		propertiesMap := map[string]Property{}
 		for _, p := range events[0].Properties {
 			propertiesMap[p.Name] = p
 		}
 		assert.Equal(t, 3.14159, propertiesMap["testFloat"].Value.(float64))
 		assert.True(t, propertiesMap["testBool"].Value.(bool))
-		assert.Equal(t, "otelstack: creating a test error", propertiesMap["error"].Value.(string))
+
+		assert.Equal(t, "otelstack: creating a test error", events[0].Exception)
 	})
 
 	t.Run("not enough values", func(t *testing.T) {

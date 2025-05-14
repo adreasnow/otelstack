@@ -15,6 +15,7 @@ type Events []struct {
 	Properties []Property `json:"Properties"`
 	Messages   []Message  `json:"MessageTemplateTokens"`
 	EventType  string     `json:"EventType"`
+	Exception  string     `json:"Exception"`
 	Level      string     `json:"Level"`
 	TraceID    string     `json:"TraceId"`
 	SpanID     string     `json:"SpanId"`
