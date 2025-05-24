@@ -20,18 +20,8 @@ type unmarshalStruct struct {
 
 // Metrics represents a Prometheus metric series.
 type Metrics struct {
-	Metric struct {
-		Name                  string `json:"__name__"`
-		DeploymentEnvironment string `json:"deployment_environment"`
-		ExportedInstance      string `json:"exported_instance"`
-		ExportedJob           string `json:"exported_job"`
-		Instance              string `json:"instance"`
-		Job                   string `json:"job"`
-		LibraryLanguage       string `json:"library_language"`
-		ServiceInstanceID     string `json:"service_instance_id"`
-		ServiceName           string `json:"service_name"`
-	} `json:"metric"`
-	Values [][]any `json:"values"`
+	Metric map[string]string `json:"metric"`
+	Values [][]any           `json:"values"`
 }
 
 type requestStruct struct {
