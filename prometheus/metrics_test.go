@@ -103,6 +103,10 @@ func TestGetMetrics(t *testing.T) {
 		require.NoError(t, err, "must be able to parse the metric value")
 
 		assert.Greater(t, num, 2)
+
+		require.Len(t, m.Metric, 5)
+		assert.Contains(t, m.Metric, "job")
+		assert.Contains(t, m.Metric, "service_name")
 	})
 
 	t.Run("not enough values", func(t *testing.T) {
