@@ -62,7 +62,7 @@ jobs:
         run: go tool go-ctrf-json-reporter -output report.json < gotestsum.json
 
       - name: Publish Test Report to PR
-        uses: ctrf-io/github-test-reporter@v1.0.17
+        uses: ctrf-io/github-test-reporter@v1.0.18
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +75,7 @@ jobs:
           overwrite-comment: true
 
       - name: Publish Test Report to Summary
-        uses: ctrf-io/github-test-reporter@v1.0.17
+        uses: ctrf-io/github-test-reporter@v1.0.18
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
